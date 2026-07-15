@@ -64,4 +64,4 @@
 - **Part 3 — 통합**: Nav2 + MoveIt2 결합 모바일 매니퓰레이터 캡스톤
 
 ---
-다음: [`01-overview-architecture.md`](./01-overview-architecture.md)
+다음: [`04-costmap-planner-controller-plugins.md`](./04-costmap-planner-controller-plugins.md) (미작성) — 토픽 1([`01-overview-architecture.md`](./01-overview-architecture.md)), 토픽 3([`03-slam-map-generation.md`](./03-slam-map-generation.md)) 완료
