@@ -46,7 +46,7 @@ nav2-advanced/  Part 1 — Nav2 자율주행 7개 토픽 (진행 중, syllabus�
 | 4 | Costmap & Planner/Controller 플러그인 | [nav2-advanced/04-costmap-planner-controller-plugins.md](nav2-advanced/04-costmap-planner-controller-plugins.md) | 완료 |
 | 5 | Behavior Tree로 Nav2 태스크 조합 | [nav2-advanced/05-behavior-tree.md](nav2-advanced/05-behavior-tree.md) | 완료 |
 | 6 | Nav2 액션 클라이언트로 미션 작성 | [nav2-advanced/06-action-client-mission.md](nav2-advanced/06-action-client-mission.md) | 완료 |
-| 7 | 멀티로봇 내비게이션 | | 예정 |
+| 7 | 멀티로봇 내비게이션 | [nav2-advanced/07-multi-robot-navigation.md](nav2-advanced/07-multi-robot-navigation.md) | 완료 |
 
 전체 목표: [nav2-advanced/00-syllabus.md](nav2-advanced/00-syllabus.md)
 

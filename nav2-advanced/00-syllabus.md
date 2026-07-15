@@ -64,4 +64,11 @@
 - **Part 3 — 통합**: Nav2 + MoveIt2 결합 모바일 매니퓰레이터 캡스톤
 
 ---
-다음: [`04-costmap-planner-controller-plugins.md`](./04-costmap-planner-controller-plugins.md) (미작성) — 토픽 1([`01-overview-architecture.md`](./01-overview-architecture.md)), 토픽 3([`03-slam-map-generation.md`](./03-slam-map-generation.md)) 완료
+Nav2 Advanced 트랙 완료 (토픽 1, 3~7). 다음은 Part 2 — MoveIt2 트랙(`../moveit2-advanced/`, 미착수).
+
+- [`01-overview-architecture.md`](./01-overview-architecture.md)
+- [`03-slam-map-generation.md`](./03-slam-map-generation.md)
+- [`04-costmap-planner-controller-plugins.md`](./04-costmap-planner-controller-plugins.md)
+- [`05-behavior-tree.md`](./05-behavior-tree.md)
+- [`06-action-client-mission.md`](./06-action-client-mission.md)
+- [`07-multi-robot-navigation.md`](./07-multi-robot-navigation.md)
