@@ -53,11 +53,11 @@ moveit2-advanced/ Part 2 — MoveIt2 모션플래닝 3개 토픽 (syllabus만 �
 
 ## Part 2 — MoveIt2 Advanced
 
-| # | 주제 | 상태 |
-|---|---|---|
-| 1 | MoveIt2 개요 & URDF/SRDF | 예정 |
-| 2 | MoveGroupInterface로 모션 플래닝 | 예정 |
-| 3 | Planning Scene & 충돌 회피 | 예정 |
+| # | 주제 | 가이드 | 상태 |
+|---|---|---|---|
+| 1 | MoveIt2 개요 & URDF/SRDF | [moveit2-advanced/01-overview-urdf-srdf.md](moveit2-advanced/01-overview-urdf-srdf.md) | 완료 |
+| 2 | MoveGroupInterface로 모션 플래닝 | | 예정 |
+| 3 | Planning Scene & 충돌 회피 | | 예정 |
 
 전체 목표: [moveit2-advanced/00-syllabus.md](moveit2-advanced/00-syllabus.md)
 
