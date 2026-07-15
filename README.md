@@ -10,8 +10,9 @@ ROS 2를 패키지 생성부터 자율주행(Nav2)·모션플래닝(MoveIt2)까�
 ## 구조
 
 ```
-basics/         Part 0 — ROS 2 기초 13개 토픽 (완료)
-nav2-advanced/  Part 1 — Nav2 자율주행 7개 토픽 (진행 중, syllabus만 작성됨)
+basics/           Part 0 — ROS 2 기초 13개 토픽 (완료)
+nav2-advanced/    Part 1 — Nav2 자율주행 7개 토픽 (완료)
+moveit2-advanced/ Part 2 — MoveIt2 모션플래닝 3개 토픽 (syllabus만 작성됨)
 ```
 
 각 트랙 폴더의 `00-syllabus.md`가 총론이고, `NN-topic.md`가 토픽별 실습 가이드다. 실습에 사용한 ROS 2 워크스페이스 코드는 트랙별로 별도 관리한다.
@@ -50,9 +51,18 @@ nav2-advanced/  Part 1 — Nav2 자율주행 7개 토픽 (진행 중, syllabus�
 
 전체 목표: [nav2-advanced/00-syllabus.md](nav2-advanced/00-syllabus.md)
 
+## Part 2 — MoveIt2 Advanced
+
+| # | 주제 | 상태 |
+|---|---|---|
+| 1 | MoveIt2 개요 & URDF/SRDF | 예정 |
+| 2 | MoveGroupInterface로 모션 플래닝 | 예정 |
+| 3 | Planning Scene & 충돌 회피 | 예정 |
+
+전체 목표: [moveit2-advanced/00-syllabus.md](moveit2-advanced/00-syllabus.md)
+
 ## 이후 트랙 (미착수)
 
-- **Part 2 — MoveIt2**: URDF/SRDF, Setup Assistant, MoveGroupInterface, Planning Scene (표준 로봇: Panda)
 - **Part 3 — 통합**: Nav2 + MoveIt2 결합 모바일 매니퓰레이터 캡스톤
 
 ## 라이선스 / 참고
