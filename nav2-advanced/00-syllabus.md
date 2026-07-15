@@ -58,10 +58,10 @@
 | [docs.nav2.org](https://docs.nav2.org/) | Nav2 공식 문서 — 이 트랙의 주제 선정 기준 |
 | [navigation2_tutorials](https://github.com/ros-navigation/navigation2_tutorials) | 공식 튜토리얼 예제 코드 |
 
-## 6. 이후 트랙 (미착수)
+## 6. 이후 트랙
 
-- **Part 2 — MoveIt2**: URDF/SRDF, Setup Assistant, MoveGroupInterface, Planning Scene (표준 로봇: Panda)
-- **Part 3 — 통합**: Nav2 + MoveIt2 결합 모바일 매니퓰레이터 캡스톤
+- **Part 2 — MoveIt2**: URDF/SRDF, Setup Assistant, MoveGroupInterface, Planning Scene (표준 로봇: Panda) — 완료
+- **Part 3 — 통합** (Nav2 + MoveIt2 결합 모바일 매니퓰레이터 캡스톤)은 보류하고, [`../isaacsim-ros2-advanced/`](../isaacsim-ros2-advanced/00-syllabus.md) Isaac Sim 로봇청소기 프로젝트로 방향 전환
 
 ---
 Nav2 Advanced 트랙 완료 (토픽 1, 3~7). 다음은 Part 2 — MoveIt2 트랙(`../moveit2-advanced/`, 미착수).

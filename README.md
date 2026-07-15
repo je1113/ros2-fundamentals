@@ -1,18 +1,19 @@
-# ROS 2 Fundamentals — 기초부터 Nav2/MoveIt2까지
+# ROS 2 Fundamentals — 기초부터 Nav2/MoveIt2, Isaac Sim까지
 
-ROS 2를 패키지 생성부터 자율주행(Nav2)·모션플래닝(MoveIt2)까지 순서대로 실습하는 튜토리얼 기록이다. Isaac Sim 없이, 표준 도구(Gazebo, TurtleBot3, Panda 등)로만 진행한다.
+ROS 2를 패키지 생성부터 자율주행(Nav2)·모션플래닝(MoveIt2)까지 순서대로 실습하는 튜토리얼 기록이다. `basics`/`nav2-advanced`/`moveit2-advanced`는 Isaac Sim 없이 표준 도구(Gazebo, TurtleBot3, Panda 등)로만 진행하고, `isaacsim-ros2-advanced`는 Isaac Sim 기반으로 커스텀 로봇(로봇청소기)을 하드웨어 가상화부터 자율주행까지 엔드투엔드로 다룬다.
 
 ## 대상 독자
 
 - ROS 2를 처음 접하거나, 개념을 순서대로 다시 다지고 싶은 학습자
-- Isaac Sim 지식은 필요 없음 — 순수 ROS 2/Gazebo 트랙
+- 순수 ROS 2/Gazebo 트랙(`basics`~`moveit2-advanced`)은 Isaac Sim 지식이 필요 없음
 
 ## 구조
 
 ```
-basics/           Part 0 — ROS 2 기초 13개 토픽 (완료)
-nav2-advanced/    Part 1 — Nav2 자율주행 7개 토픽 (완료)
-moveit2-advanced/ Part 2 — MoveIt2 모션플래닝 3개 토픽 (syllabus만 작성됨)
+basics/                  Part 0 — ROS 2 기초 13개 토픽 (완료)
+nav2-advanced/           Part 1 — Nav2 자율주행 7개 토픽 (완료)
+moveit2-advanced/        Part 2 — MoveIt2 모션플래닝 3개 토픽 (완료)
+isaacsim-ros2-advanced/  Isaac Sim × ROS2 — 로봇청소기 시뮬레이션 프로젝트 (Part A~D, 10개 토픽, 진행 예정)
 ```
 
 각 트랙 폴더의 `00-syllabus.md`가 총론이고, `NN-topic.md`가 토픽별 실습 가이드다. 실습에 사용한 ROS 2 워크스페이스 코드는 트랙별로 별도 관리한다.
@@ -61,9 +62,24 @@ moveit2-advanced/ Part 2 — MoveIt2 모션플래닝 3개 토픽 (syllabus만 �
 
 전체 목표: [moveit2-advanced/00-syllabus.md](moveit2-advanced/00-syllabus.md)
 
-## 이후 트랙 (미착수)
+## Isaac Sim × ROS2 — 로봇청소기 시뮬레이션 프로젝트
 
-- **Part 3 — 통합**: [nav2-advanced/](nav2-advanced/00-syllabus.md) + [moveit2-advanced/](moveit2-advanced/00-syllabus.md) 결합 모바일 매니퓰레이터 캡스톤
+Nav2+MoveIt2 통합 캡스톤(Part 3) 계획은 보류하고, Isaac Sim 기반 커스텀 로봇 프로젝트로 방향을 전환했다.
+
+| # | 주제 | 가이드 | 상태 |
+|---|---|---|---|
+| 1 | 베이스 모델 설정 & 메쉬 다듬기 | — | 진행 예정 |
+| 2 | 충돌체 및 무게중심 수정 | — | 진행 예정 |
+| 3 | 청소 가동부(브러쉬) 배치 | — | 진행 예정 |
+| 4 | 2D LiDAR & RGB-D 카메라 배치 | — | 진행 예정 |
+| 5 | 특수 센서 배치 (Bumper & 추락방지) | — | 진행 예정 |
+| 6 | 마스터 액션그래프 & ROS2 브릿지 활성화 | — | 진행 예정 |
+| 7 | 가상 학습 데이터 생성 | — | 진행 예정 |
+| 8 | 격자 지도 빌드 | — | 진행 예정 |
+| 9 | 커버리지 경로 계획 (CPP) | — | 진행 예정 |
+| 10 | 기능 구현 & 예외 처리 | — | 진행 예정 |
+
+전체 목표: [isaacsim-ros2-advanced/00-syllabus.md](isaacsim-ros2-advanced/00-syllabus.md)
 
 ## 라이선스 / 참고
 

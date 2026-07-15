@@ -52,9 +52,9 @@
 | [moveit.picknik.ai](https://moveit.picknik.ai/) | MoveIt2 공식 문서 — 이 트랙의 주제 선정 기준 |
 | [moveit2_tutorials](https://github.com/moveit/moveit2_tutorials) | 공식 튜토리얼 예제 코드 |
 
-## 6. 이후 트랙 (미착수)
+## 6. 이후 트랙
 
-- **Part 3 — 통합**: [`../nav2-advanced/`](../nav2-advanced/00-syllabus.md) + MoveIt2 결합 모바일 매니퓰레이터 캡스톤 — "이동 후 픽업" 미션
+- **Part 3 — 통합** ([`../nav2-advanced/`](../nav2-advanced/00-syllabus.md) + MoveIt2 결합 모바일 매니퓰레이터 캡스톤, "이동 후 픽업" 미션)은 보류하고, [`../isaacsim-ros2-advanced/`](../isaacsim-ros2-advanced/00-syllabus.md) Isaac Sim 로봇청소기 프로젝트로 방향 전환
 
 ---
 MoveIt2 Advanced 트랙 완료.
