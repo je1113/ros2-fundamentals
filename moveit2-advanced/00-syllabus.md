@@ -57,4 +57,8 @@
 - **Part 3 — 통합**: [`../nav2-advanced/`](../nav2-advanced/00-syllabus.md) + MoveIt2 결합 모바일 매니퓰레이터 캡스톤 — "이동 후 픽업" 미션
 
 ---
-다음: `01-overview-urdf-srdf.md` (미작성)
+MoveIt2 Advanced 트랙 완료.
+
+- [`01-overview-urdf-srdf.md`](./01-overview-urdf-srdf.md)
+- [`02-movegroup-interface.md`](./02-movegroup-interface.md)
+- [`03-planning-scene-collision.md`](./03-planning-scene-collision.md)
