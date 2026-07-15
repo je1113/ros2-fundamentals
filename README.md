@@ -38,15 +38,15 @@ nav2-advanced/  Part 1 — Nav2 자율주행 7개 토픽 (진행 중, syllabus�
 
 ## Part 1 — Nav2 Advanced
 
-| # | 주제 | 상태 |
-|---|---|---|
-| 1 | Nav2 개요 & 아키텍처 | 예정 |
-| 2 | TurtleBot3 + Gazebo로 Nav2 첫 실행 | 예정 |
-| 3 | SLAM으로 지도 생성 | 예정 |
-| 4 | Costmap & Planner/Controller 플러그인 | 예정 |
-| 5 | Behavior Tree로 Nav2 태스크 조합 | 예정 |
-| 6 | Nav2 액션 클라이언트로 미션 작성 | 예정 |
-| 7 | 멀티로봇 내비게이션 | 예정 |
+| # | 주제 | 가이드 | 상태 |
+|---|---|---|---|
+| 1 | Nav2 개요 & 아키텍처 (TurtleBot3+Gazebo 첫 실행 포함) | [nav2-advanced/01-overview-architecture.md](nav2-advanced/01-overview-architecture.md) | 완료 |
+| 2 | ~~TurtleBot3 + Gazebo로 Nav2 첫 실행~~ (토픽 1에 통합) | — | — |
+| 3 | SLAM으로 지도 생성 | | 예정 |
+| 4 | Costmap & Planner/Controller 플러그인 | | 예정 |
+| 5 | Behavior Tree로 Nav2 태스크 조합 | | 예정 |
+| 6 | Nav2 액션 클라이언트로 미션 작성 | | 예정 |
+| 7 | 멀티로봇 내비게이션 | | 예정 |
 
 전체 목표: [nav2-advanced/00-syllabus.md](nav2-advanced/00-syllabus.md)
 

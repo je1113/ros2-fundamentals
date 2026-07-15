@@ -24,8 +24,8 @@
 
 | # | 주제 | 핵심 키워드 |
 |---|---|---|
-| 1 | Nav2 개요 & 아키텍처 | lifecycle node, bt_navigator, planner/controller/behavior server |
-| 2 | TurtleBot3 + Gazebo로 Nav2 첫 실행 | map_server, AMCL, nav2_bringup, RViz |
+| 1 | Nav2 개요 & 아키텍처 (TurtleBot3+Gazebo 첫 실행 포함, 토픽 2와 통합 진행됨) | lifecycle node, bt_navigator, planner/controller/behavior server, map_server, AMCL, nav2_bringup |
+| ~~2~~ | ~~TurtleBot3 + Gazebo로 Nav2 첫 실행~~ (토픽 1에 통합) | — |
 | 3 | SLAM으로 지도 생성 | slam_toolbox, `ros2 run nav2_map_server map_saver_cli` |
 | 4 | Costmap & Planner/Controller 플러그인 | global/local costmap, NavFn/SmacPlanner, DWB/RPP controller |
 | 5 | Behavior Tree로 Nav2 태스크 조합 | BT.CPP, `.xml` BT, 커스텀 BT 노드 |
@@ -64,4 +64,4 @@
 - **Part 3 — 통합**: Nav2 + MoveIt2 결합 모바일 매니퓰레이터 캡스톤
 
 ---
-다음: `01-overview-architecture.md` (미작성)
+다음: [`01-overview-architecture.md`](./01-overview-architecture.md)
