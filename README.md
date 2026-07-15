@@ -44,7 +44,7 @@ nav2-advanced/  Part 1 — Nav2 자율주행 7개 토픽 (진행 중, syllabus�
 | 2 | ~~TurtleBot3 + Gazebo로 Nav2 첫 실행~~ (토픽 1에 통합) | — | — |
 | 3 | SLAM으로 지도 생성 | [nav2-advanced/03-slam-map-generation.md](nav2-advanced/03-slam-map-generation.md) | 완료 |
 | 4 | Costmap & Planner/Controller 플러그인 | [nav2-advanced/04-costmap-planner-controller-plugins.md](nav2-advanced/04-costmap-planner-controller-plugins.md) | 완료 |
-| 5 | Behavior Tree로 Nav2 태스크 조합 | | 예정 |
+| 5 | Behavior Tree로 Nav2 태스크 조합 | [nav2-advanced/05-behavior-tree.md](nav2-advanced/05-behavior-tree.md) | 완료 |
 | 6 | Nav2 액션 클라이언트로 미션 작성 | | 예정 |
 | 7 | 멀티로봇 내비게이션 | | 예정 |
 
