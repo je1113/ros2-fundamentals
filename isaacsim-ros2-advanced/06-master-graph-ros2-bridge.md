@@ -1,6 +1,6 @@
 # 06. 마스터 액션그래프 & ROS2 브릿지 활성화
 
-> 진행 상태: **3.1 완료** (cmd_vel → Joint Drive 구동 확인). 3.2/3.3은 다음 세션.
+> 진행 상태: **완료** — 3.1(cmd_vel 구동)/3.2(Odometry)/3.3(TF 트리) 전부 확인. 헤드리스 실행 테스트만 남음.
 
 ## 1. 학습 목표
 
@@ -38,20 +38,24 @@ OmniGraph (`/World/CmdVelGraph`):
   - `Prim Path=/World/YawRevoluteJoint`, `Attribute Name=drive:angular:physics:targetVelocity` ← `BreakAngular.outputs:z` (ROS `angular.z` — 이 스테이지는 Y-up이라 world Y회전 축과 정확히 일치, 별도 축 변환 불필요)
 - 연결: `On Playback Tick` → `ROS2 Subscribe Twist`(Exec) 및 두 `Write Prim Attribute`(Exec, 매 프레임 — cmd_vel 새 메시지 여부와 무관하게 항상 재적용)
 
-### 3.2 Odometry 퍼블리시
+### 3.2 Odometry 퍼블리시 — 완료
 
-- `ROS2 Publish Odometry` (`isaacsim.ros2.bridge.ROS2PublishOdometry`)
-- 입력: `Position`/`Orientation`(월드 기준 robot1의 위치/회전 — `Get Prim Local to World Transform` + `Get Translation`/회전 추출 노드 필요, Topic 5의 `cliff_mount` 위치 추적과 같은 패턴), `Linear/Angular Velocity`(3.1의 Twist 구독값을 그대로 재사용해도 되고, 실제 물리 속도를 읽고 싶으면 별도 조사 필요), `Chassis Frame Id=base_link`, `Odom Frame Id=odom`, `Topic Name=odom`
+- `ROS2 Publish Odometry` (`isaacsim.ros2.bridge.ROS2PublishOdometry`)는 `Position`/`Orientation`을 world-frame으로 직접 입력받는 노드라, 이 스테이지가 Y-up이라는 걸 명시적으로 변환해야 했다. robot1의 회전은 `YawPivot`/`ForwardPrismaticJoint` 체인 덕분에 **Y축 순수 yaw 회전으로만 제한**되어 있어서 축 변환이 단순해졌다: 매 프레임 작은 `ScriptNode`(`OdomCompute`, 순수 수학 계산만 함 — 오늘 겪은 "raw velocity/force가 안 먹히는" 문제와는 무관한 영역)가 `robot1`의 `ComputeLocalToWorldTransform()`을 읽어서
+  - 위치: Isaac `(x, y, z)` → ROS `(x, z, y)`
+  - 방향: Isaac Y축 쿼터니언에서 `yaw = 2*atan2(quat.imaginary.y, quat.real)`을 뽑아 ROS Z축 쿼터니언 `(0, 0, sin(yaw/2), cos(yaw/2))`으로 재구성
+  하고, 이 값을 `og.Controller.set()`으로 `OdomPublish` 노드의 `inputs:position`/`inputs:orientation`에 직접 밀어넣는다 (동적 ScriptNode 출력 핀을 새로 만드는 대신, 이미 있는 다운스트림 노드의 입력에 바로 쓰는 방식 — 오늘 여러 번 써서 검증된 패턴).
+- `Linear/Angular Velocity`: 3.1의 `ROS2SubscribeTwist` 출력을 그대로 재사용(연결만 함, 별도 변환 없음). 단 `ROS2PublishOdometry`의 기본 동작(`publishRawVelocities=False`)은 내부적으로 `robotFront`/`robotUp=[0,0,1]`(Z-up 가정)로 world velocity를 로봇 로컬 프레임에 투영하는데, 이 스테이지는 Y-up이라 이 가정이 안 맞는다 → **`publishRawVelocities=True`로 켜서 이 내부 투영을 건너뛰고, 이미 ROS 컨벤션인 cmd_vel 값을 그대로 통과**시키는 쪽을 택함.
+- `Chassis Frame Id=base_link`, `Odom Frame Id=odom`, `Topic Name=odom`
 
-### 3.3 TF 트리 퍼블리시
+### 3.3 TF 트리 퍼블리시 — 완료
 
 - `ROS2 Publish Transform Tree` (`isaacsim.ros2.bridge.ROS2PublishTransformTree`)
-- `Target Prims`(다중 입력 가능)에 `robot1`, `lidar_mount/Lidar_2D`, `camera_mount/Camera`, `bumper_mount`, `cliff_mount` 등록
-- **주의(다음 세션에 확인 필요)**: 이 노드가 퍼블리시하는 frame_id가 프림 이름 기반인지 확인 필요 — Topic 4에서 LiDAR/카메라 Helper 노드의 `frameId`를 `sim_lidar`/`sim_camera`로 임의 문자열로 설정해뒀는데, TF 트리의 frame_id와 안 맞으면 RViz 등에서 센서 데이터가 TF에 제대로 안 붙는다. 필요하면 Helper 노드들의 `frameId`를 실제 프림 이름과 일치시켜야 함.
+- `Target Prims`(다중 입력, `SET_VALUES`에 prim path 문자열 리스트로 전달)에 `robot1`, `lidar_mount/Lidar_2D`, `camera_mount/Camera`, `bumper_mount`, `cliff_mount` 등록
+- **frameId 불일치 확인 및 수정**: Topic 4에서 LiDAR/카메라 Helper 노드의 `frameId`가 `sim_lidar`/`sim_camera`라는 임의 문자열이었는데, `ROS2PublishTransformTree`는 타겟 프림의 **실제 프림 이름**을 frame_id로 쓴다(`Lidar_2D`, `Camera`) — 매칭 안 되면 RViz 등에서 센서 데이터가 TF에 안 붙는다. `/World/SensorGraph/LidarHelper.inputs:frameId`를 `Lidar_2D`로, `/World/ActionGraph/RgbHelper.inputs:frameId`와 `DepthHelper.inputs:frameId`를 `Camera`로 각각 `og.Controller.attribute()` + `og.Controller.set()`으로 직접 고쳐서 일치시켰다.
 
 ## 4. 예상/실제 결과 확인
 
-(다음 세션 목표) `ros2 topic pub /cmd_vel geometry_msgs/msg/Twist ...`로 로봇이 실제로 움직이는지, `ros2 topic echo /odom`과 `ros2 run tf2_ros tf2_echo` 등으로 TF/Odometry가 정상 퍼블리시되는지 확인.
+`ros2 topic pub /cmd_vel geometry_msgs/msg/Twist ...`로 로봇이 명령대로 방향 전환하며 이동, `ros2 topic echo /odom`과 `ros2 topic echo /tf` 둘 다 값이 정상적으로 갱신되며 퍼블리시되는 것 확인. (`tf2_echo`로 특정 프레임 쌍 조회, RViz 시각 확인은 아직 안 함 — 다음에 필요하면.)
 
 ## 5. 알려진 문제와 해결
 
@@ -72,10 +76,10 @@ OmniGraph (`/World/CmdVelGraph`):
 
 - [x] 필요한 ROS2 브릿지 노드 이름/타입 문자열 전부 확인 (`ROS2SubscribeTwist`, `ROS2PublishOdometry`, `ROS2PublishTransformTree`, `WritePrimAttribute`, `BreakVector3`)
 - [x] cmd_vel → Joint Drive(`YawRevoluteJoint`/`ForwardPrismaticJoint`) 배선, `ros2 topic pub /cmd_vel`로 방향 전환 포함 정상 구동 확인 (단, robot1이 중력 영향 없이 YawPivot 높이에 뜬 채로 이동 — 바닥 밀착은 다음에 다듬을 것)
-- [ ] Odometry 퍼블리시 배선 및 `/odom` 토픽 확인
-- [ ] TF 트리 배선 및 frame_id 일관성 확인 (LiDAR/카메라 Helper의 `frameId`와 매칭)
+- [x] Odometry 퍼블리시 배선 및 `/odom` 토픽 확인 (Y-up→ROS 변환 포함)
+- [x] TF 트리 배선 및 frame_id 일관성 확인 (LiDAR/카메라 Helper의 `frameId`를 `Lidar_2D`/`Camera`로 수정해 매칭)
 - [ ] 헤드리스 실행 테스트 (미착수)
 - [ ] (선택) robot1이 바닥에 붙어서 구르도록 YawPivot/Prismatic 구조에 수직 방향 여유(스프링/댐퍼) 추가
 
 ---
-다음 세션: 3.2(Odometry 퍼블리시)부터 이어서 배선 및 검증
+Part B (마스터 그래프/ROS2 브릿지) 완료. 다음: Part C(SLAM, teleop 데이터 생성 → slam_toolbox 지도 빌드) 또는 남은 헤드리스 실행 테스트
