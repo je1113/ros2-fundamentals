@@ -213,4 +213,4 @@ ros2 topic echo /joint_states --once
 - [ ] 토픽 명령으로 관절을 움직이고 `/joint_states`에서 결과를 확인했다.
 
 ---
-이것으로 [`00-syllabus.md`](./00-syllabus.md)의 13개 주제를 모두 마쳤다.
+다음: [`14-hangman-game.md`](./14-hangman-game.md)

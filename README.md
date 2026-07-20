@@ -10,7 +10,7 @@ ROS 2를 패키지 생성부터 자율주행(Nav2)·모션플래닝(MoveIt2)까�
 ## 구조
 
 ```
-basics/                  Part 0 — ROS 2 기초 13개 토픽 (완료)
+basics/                  Part 0 — ROS 2 기초 13개 토픽 + 미니 프로젝트 1개 (완료)
 nav2-advanced/           Part 1 — Nav2 자율주행 7개 토픽 (완료)
 moveit2-advanced/        Part 2 — MoveIt2 모션플래닝 3개 토픽 (완료)
 isaacsim-ros2-advanced/  Isaac Sim × ROS2 — 로봇청소기 시뮬레이션 프로젝트 (Part A~D, 10개 토픽, 진행 예정)
@@ -35,6 +35,7 @@ isaacsim-ros2-advanced/  Isaac Sim × ROS2 — 로봇청소기 시뮬레이션 �
 | 11 | tf2 & 시간 | [basics/11-tf2-time.md](basics/11-tf2-time.md) |
 | 12 | rosbag2 & 디버깅 툴 | [basics/12-rosbag-debugging.md](basics/12-rosbag-debugging.md) |
 | 13 | ros2_control 입문 | [basics/13-ros2-control.md](basics/13-ros2-control.md) |
+| 14 | 미니 프로젝트: 행맨 게임 | [basics/14-hangman-game.md](basics/14-hangman-game.md) |
 
 전체 목표: [basics/00-syllabus.md](basics/00-syllabus.md)
 

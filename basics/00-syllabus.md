@@ -2,10 +2,10 @@
 
 **과정명**: ROS 2 Basics — 패키지 생성부터 ros2_control 입문까지
 **대상**: ROS 2를 처음 접하거나, 개념을 순서대로 다시 다지고 싶은 학습자
-**성격**: Isaac Sim/Gazebo 없이 **ROS 2 자체의 핵심 개념 13가지**를 순서대로 실습하는 순수 ROS 2 기초 트랙.
+**성격**: Isaac Sim/Gazebo 없이 **ROS 2 자체의 핵심 개념 13가지**를 순서대로 실습하고, 마지막에 배운 것을 종합하는 미니 프로젝트(행맨 게임) 1개로 마무리하는 순수 ROS 2 기초 트랙.
 **실습 환경**: `~/ros2_ws` (신규 패키지 `ros2_basics`, `ros2_basics_msgs` 사용 — 기존 `demo_pkg`/`demo_pkg_msgs`와 분리)
 
-이 문서는 총론이며, 각 주제의 상세 실습 가이드는 `01-*.md` ~ `13-*.md` 파일에 담는다.
+이 문서는 총론이며, 각 주제의 상세 실습 가이드는 `01-*.md` ~ `14-*.md` 파일에 담는다.
 
 ---
 
@@ -36,6 +36,7 @@
 | 11 | tf2 & 시간(Time/`use_sim_time`) | static/dynamic broadcaster, listener, 시뮬레이션 시계 |
 | 12 | rosbag2 & 디버깅 툴 | `ros2 bag`, `rqt_graph`, `ros2 doctor`, `ros2 topic/node echo` |
 | 13 | ros2_control 입문 | controller_manager, hardware interface, 궤적 제어 데모 |
+| 14 | 미니 프로젝트: 행맨 게임 | 서비스, 파라미터, 토픽 종합 실습 (신규 개념 없음) |
 
 ## 3. 사전 준비물
 
