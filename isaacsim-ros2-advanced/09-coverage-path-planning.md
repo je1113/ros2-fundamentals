@@ -1,6 +1,6 @@
 # 09. 커버리지 경로 계획 (CPP)
 
-> 진행 상태: **진행 중** — Nav2 스택 기동, 코스트맵 튜닝, 커스텀 Boustrophedon 플래너 작성까지 완료. 이 세션 최대 성과는 로봇의 회전 응답이 애초에 잘못돼 있던 근본 원인(라디안/도 단위 불일치)을 찾아 고친 것. Nav2 액션(`navigate_to_pose`)이 목표를 거부/무응답하는 문제가 아직 남아 다음 세션으로 이월.
+> 진행 상태: **진행 중** — Nav2 스택 기동, 코스트맵 튜닝, 커스텀 Boustrophedon 플래너 작성, 제자리 회전 드라이브트레인 재설계(Gantry 리그), SLAM 지도 품질 버그(TF ground truth 오류 + yaw 부호 오류) 완전 해결까지 완료. 남은 건 Nav2 2D Goal Pose/목표 주행 검증과 Boustrophedon 커버리지 전체 실행.
 
 ## 1. 학습 목표
 
@@ -89,6 +89,30 @@ ros2 launch /home/pw/isaac_assets/vacuum_robot/config/nav2_minimal_launch.py \
 
 회전 버그를 고친 뒤 `navigate_to_pose`/`compute_path_to_pose` 액션에 새 목표를 보내면 `Goal was rejected` 또는 응답 없이 타임아웃되는 증상이 남아있다. 로봇이 매핑된 자유공간 밖(예: 북쪽 벽 근처)에 있을 때 확실히 거부되는 것은 확인했지만, 방 중앙의 안전한 위치에서도 거부/무응답이 재현되어 원인 미확정 — 코스트맵이 유효한 데이터를 못 받고 있거나, 2시간 반 넘게 켜둔 세션의 시스템 부하 문제일 가능성. `nav2_simple_commander`의 `BasicNavigator.waitUntilNav2Active(localizer="slam_toolbox")`도 응답 없이 멈추는 것을 별도로 확인 — CLI(`ros2 action send_goal`)로 우회 가능하다는 것만 확인.
 
+### 3.9 3.6절 수정만으로는 부족했음 — 제자리 회전이 여전히 원을 그림, Gantry 리그로 완전 재설계
+
+3.6절의 라디안/도 단위 변환은 필요했지만 충분하지 않았다. 이후 세션들(2026-07-19~20)에서 단위를 고친 뒤에도 회전이 "제자리"가 아니라 **반경 1~4m짜리 원을 그리며 도는** 문제가 반복됐다 — 원인은 당시 드라이브트레인이 `world`에 고정된 `YawPivot`(회전 중심)과 거기 프리즘 조인트로 매달린 `robot1`이라는 2-바디 구조였기 때문에, 전진으로 슬라이더가 늘어난 채로 회전하면 그 늘어난 만큼의 반경으로 원을 그릴 수밖에 없는 **기하학적으로 당연한 한계**였다. `YawPivot`을 매 틱 `robot1` 위치로 재배치(continuous/edge-triggered 두 방식 모두 시도)하는 방법은 **살아있는 PhysX 조인트의 앵커를 스크립트로 직접 쓰면 발산하는 피드백 루프가 생긴다**는 걸로 두 번 다 실패(값이 수백~수십만 단위로 폭주, `emergency_cleanup.py`로 복구).
+
+**최종 해결 (2026-07-21)**: 피벗을 쫓아다니는 방식을 완전히 버리고, `world --Prismatic(X)--> GantryX --Prismatic(Z)--> GantryZ --Revolute(Y)--> robot1` 3-조인트 Gantry 체인으로 재설계. 핵심 아이디어: 이동은 **고정된 월드 좌표축**을 따라 일어나므로 회전하는 조인트 프레임을 쫓아다닐 필요가 없고("heading-relative"는 소프트웨어(`GantryDriveCompute` 스크립트)가 `vx=linear_x*cosθ, vz=-linear_x*sinθ`로 매 틱 분해해서 처리), 회전은 `robot1` 자신에 물린 Revolute 조인트라서 **자기 자신의 현재 위치를 중심으로** 돈다 — 구조적으로 원이 그려질 수가 없다.
+
+덤으로 발견한 두 개의 숨은 원인도 같이 해결: (1) `robot1`의 `xformOp:orient`가 identity가 아니라 ~1.2° 기울어져 있었던 것(과거 물리 사고의 잔재, Topic 1 grouping 시점부터), (2) `robot1`의 USD 원점이 애초에 시각적 메쉬 중심에서 **~0.65m** 떨어져 있었던 것(Topic 1의 `Ctrl+G` 그룹핑이 임의의 기준점을 원점으로 잡았기 때문) — 회전축은 정상인데 메쉬만 멀리서 도는 것처럼 보이던 착시였다. 조인트에 물린 살아있는 바디(`robot1`)의 `xformOp:translate`는 절대 건드리지 않고, 대신 **메쉬 정점(vertex) 데이터 자체**를 원점 기준으로 재중심화하는 방식으로 안전하게 고침 (`01-base-model-mesh-cleanup.md` 참고).
+
+결과: 전진/후진은 월드축 분해로 매끄럽게, 회전은 제자리에서 원 없이 — 이 세션부로 드라이브트레인 문제는 완전히 종결.
+
+### 3.10 지도가 "블롭"으로 나오는 문제 — 진짜 원인은 회전이 아니라 TF ground truth 자체가 틀렸던 것
+
+드라이브트레인을 고친 뒤 SLAM을 재검증하니 `/map`이 벽 윤곽 없이 흩뿌려진 점 구름("블롭")으로만 나왔다. 처음엔 "회전 중 스캔 타임스탬프 동기화 문제"를 의심했으나(`/scan`-`/tf` 타임스탬프 차이를 직접 재보니 안정적인 한 틱(~33ms) 지연으로 정상), 라이다 자기충돌·메시지 필터 큐·`minimum_travel_distance` 임계값·async/sync 모드 차이·`/scan`의 NaN 오염까지 하나씩 제거했지만 전부 무관했다.
+
+**진짜 원인**: Isaac Sim Script Editor에서 `robot1`의 실제 USD 월드 위치(`ComputeLocalToWorldTransform`)를 직접 찍어보니 원점에서 3.5m 넘게 이동해 있는데, 그 순간의 실시간 `/tf`(`world→robot1`)는 원점 근처 값(`0.03m` 수준)에 그대로 박혀 있었다. **`CmdVelGraph`의 `TfPublish`(`isaacsim.ros2.bridge.ROS2PublishTransformTree`) 네이티브 노드가 Gantry 리그 구조에서 prim 포즈를 제대로 못 읽고 있었다** — `targetPrims`/`parentPrim` 설정은 정상이었고, 노드를 삭제 후 재생성해도, Stop→Play를 다시 거쳐도 동일하게 재현됐다(캐싱 문제가 아니라 이 조인트 체인 구조에서의 실제 계산 버그로 보임). 반면 같은 prim을 파이썬으로 직접 읽는 `OdomCompute`(ScriptNode)는 매 틱 정확했고 `/odom`도 항상 정확한 값을 냈다.
+
+**해결**: `TfPublish`를 `isaacsim.ros2.bridge.ROS2PublishRawTransformTree`(prim 경로 대신 translation/rotation 값을 직접 입력받는 노드) 5개(로봇 본체+센서 4개)로 교체하고, `OdomCompute`와 동일한 파이썬 계산(`ComputeLocalToWorldTransform`)으로 매 틱 값을 직접 채워 넣는 `TfCompute` 스크립트노드를 새로 추가. 이걸로 `/tf`가 실제 위치를 정확히 따라가는 것 확인.
+
+**두 번째 버그, 회전할 때만 튀는 증상**: TF 위치는 고쳤는데도 회전을 섞으면 slam_toolbox의 자체 위치 추정(`/pose`)이 실제 위치에서 갑자기 몇 미터씩 벌어졌다. 원인은 좌표축 변환 자체에 있었다 — USD는 Y-up이라 `OdomCompute`/`TfCompute`가 위치를 `(x, z, y)`로 순서만 바꿔 ROS 평면에 매핑하는데, 이건 **반사(reflection, 행렬식 -1)** 변환이다. 회전행렬로 직접 유도해보면, USD에서 Y축 기준 +θ만큼 돈 것이 이 반사 매핑을 거치면 ROS 좌표계에서는 **-θ**로 나와야 앞뒤가 맞는데, 코드는 부호를 안 바꾸고 그대로(`+θ`) 쓰고 있었다 — 그 결과 회전할 때마다 라이다 스캔의 실제 방향과 발행되는 방향이 반대로 어긋나 스캔 매칭이 튀었다.
+
+**해결**: `OdomCompute`/`TfCompute` 둘 다 `yaw = -yaw`로 부호 반전. 이후 slam_toolbox를 깨끗이 재시작하고 짧게 끊어서(길게 누르지 않고) 회전 포함 주행하니 `/map`이 방 크기(120×100, 6m×5m)와 정확히 일치하는 깨끗한 사각형으로 완성됐고, `map_saver_cli`로 저장 완료.
+
+**교훈**: (1) 이 프로젝트에서 반복된 "네이티브/스크립트 노드가 예전 상태를 캐싱한다"는 가설이 항상 맞는 건 아니다 — 삭제+재생성+Stop/Play까지 다 해도 안 풀리면, prim 경로 기반 자동 계산 노드 자체의 계산 로직을 의심하고 raw 값을 직접 주입하는 방식으로 우회하는 게 더 빠를 수 있다. (2) Y-up↔Z-up처럼 축 두 개를 단순히 맞바꾸는 매핑은 반사이므로, 위치만 맞다고 방향(회전)까지 맞다고 가정하면 안 된다 — 행렬식을 확인하고 필요하면 각도 부호를 반전할 것.
+
 ## 4. 예상/실제 결과 확인
 
 - Nav2 minimal launch: 6개 노드(controller/planner/smoother/behavior/bt_navigator/waypoint_follower) 전부 `active` 확인.
@@ -108,6 +132,11 @@ ros2 launch /home/pw/isaac_assets/vacuum_robot/config/nav2_minimal_launch.py \
 | 첫 Boustrophedon 웨이포인트에서 로봇이 완전히 멈춰 몇 분간 위치 불변 | 웨이포인트가 벽 코너에서 ~0.4m밖에 안 떨어져 로봇이 물리적으로 낌 | `MARGIN`을 `0.3`→`0.6`으로 확대 (3.5절) |
 | `targetVelocity`를 극단적으로 큰 값(50)으로 테스트하다 로봇이 벽을 뚫고 나가고, 이후 바닥까지 뚫고 2km 자유낙하 | 얇은 벽(0.1m)과 큰 회전 속도로 인한 물리 터널링, 이후 충격이 Prismatic Joint의 수직 고정까지 깨뜨림 | 저장 시점으로 스테이지 되돌림 (되돌리며 미저장 수정 전부 소실, 다시 적용해야 했음) — 앞으로 조인트 드라이브는 항상 작은 값(≤1)으로 먼저 테스트 (3.7절) |
 | 회전 버그 수정 후에도 `navigate_to_pose`/`compute_path_to_pose`가 목표를 거부하거나 무응답 | 미확정 — 코스트맵 데이터 문제 또는 장시간 세션의 시스템 부하로 추정 | **다음 세션 숙제** (3.8절) |
+| 단위 변환을 고쳐도 회전이 제자리가 아니라 반경 1~4m 원을 그림 | 당시 드라이브트레인이 월드 고정 피벗+프리즘 슬라이더 구조라, 전진으로 슬라이더가 늘어난 채 회전하면 그 반경만큼 원을 그릴 수밖에 없는 기하학적 한계 | Gantry 리그(`world→Prismatic(X)→Prismatic(Z)→Revolute(Y)→robot1`)로 완전 재설계, 이동은 월드축 분해로 소프트웨어 처리 (3.9절) |
+| 피벗을 매 틱/엣지 트리거로 `robot1` 위치에 재배치하려 하면 값이 발산 | 활성 PhysX 조인트의 앵커(`localPos0`)를 라이브 Play 중에 스크립트로 직접 쓰면 솔버와 충돌하는 피드백 루프 발생 | 피벗-추적 방식 자체를 포기하고 Gantry 리그로 대체 (3.9절) |
+| Gantry 리그 완성 후에도 회전 시 로봇이 넓게 도는 것처럼 보임 | `robot1`의 USD 원점이 Topic 1 `Ctrl+G` 그룹핑 때부터 시각적 메쉬 중심에서 ~0.65m 떨어져 있었음 (회전축 자체는 정상) | `robot1`의 `xformOp:translate`는 그대로 두고 메쉬 정점 데이터를 원점 기준으로 재중심화 (3.9절) |
+| 드라이브트레인을 다 고쳐도 `/map`이 벽 없는 블롭으로만 나옴 | `TfPublish`(`ROS2PublishTransformTree`)가 Gantry 리그에서 prim 월드 포즈를 잘못 계산 — slam_toolbox가 "몇 미터 이동"을 "거의 안 움직임"으로 오해 | `ROS2PublishRawTransformTree` 5개로 교체, `OdomCompute`와 동일하게 파이썬에서 직접 계산한 값을 주입 (3.10절) |
+| TF 위치를 고쳐도 회전할 때마다 slam 위치 추정이 몇 m씩 튐 | Y-up→ROS 축 매핑 `(x,z,y)`가 반사(행렬식 -1) 변환인데 yaw 부호를 안 뒤집어서, 회전 시 스캔 방향이 실제와 반대로 발행됨 | `OdomCompute`/`TfCompute`에서 `yaw = -yaw`로 부호 반전 (3.10절) |
 
 ## 6. 체크포인트
 
@@ -117,6 +146,8 @@ ros2 launch /home/pw/isaac_assets/vacuum_robot/config/nav2_minimal_launch.py \
 - [x] 커스텀 Boustrophedon 플래너 작성, 웨이포인트 생성 로직 검증
 - [ ] RViz/CLI에서 단일 목표 지정 시 로봇이 안정적으로 도달 — **회전 버그 수정 후 재검증 필요, Nav2 액션 거부 문제로 미완료**
 - [ ] 웨이포인트 시퀀스를 Nav2에 넘겨 방 전체를 커버리지 주행
+- [x] 제자리 회전 드라이브트레인 재설계 완료 (Gantry 리그, 3.9절)
+- [x] SLAM 지도 품질 버그(TF ground truth 오류 + yaw 부호 오류) 완전 해결, 방 크기와 정확히 일치하는 지도 저장 완료 (3.10절)
 
 ---
-다음: Nav2 액션 거부/무응답 원인 조사 (3.8절) → 회전 버그 수정된 상태로 단일 목표 재검증 → Boustrophedon 전체 실행
+다음: RViz "2D Goal Pose"로 목표 주행 검증 (지금 지도가 깨끗하니 3.8절의 Nav2 액션 거부 문제가 재현되는지부터 확인) → Boustrophedon 전체 실행
