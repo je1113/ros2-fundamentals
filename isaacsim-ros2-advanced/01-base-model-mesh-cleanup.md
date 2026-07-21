@@ -88,7 +88,8 @@ print("Export result:", result)
 1. 로봇 본체에 해당하는 프림들을 다중 선택 → `Ctrl+G` (Group Selected) → 이름을 의미 있게 변경
 2. 거치대(도킹 스테이션) 프림들도 같은 방식으로 그룹핑
 3. 소스 에셋에 로봇이 두 벌 들어있는 경우(스탠드얼론 버전 + 거치대에 얹힌 "도킹 포즈" 장식용 복제본) 흔하다 — 눈 아이콘으로 하나씩 꺼보며 중복 여부를 확인하고, 장식용 복제본은 삭제한다. 실제 도킹 동작은 나중에 Nav2로 로봇을 거치대 위치까지 이동시켜 구현할 것이므로 미리 박제된 메쉬는 불필요하다.
-4. `Ctrl+S`로 저장
+4. **그룹핑 직후, 그룹의 원점이 실제 메쉬 중심과 일치하는지 바로 확인한다** (아래 5절 표 참고 — `Ctrl+G`는 원점을 지오메트릭 중심이 아니라 그룹 생성 시점의 임의 기준으로 잡을 수 있다). 이 확인을 지금 하지 않으면, 훨씬 나중에 회전 조인트를 붙이는 Topic에서야 "제자리 회전인데 왜 큰 원을 그리지?" 형태로 드러나 원인 추적이 훨씬 어려워진다.
+5. `Ctrl+S`로 저장
 
 ## 4. 예상/실제 결과 확인
 
@@ -105,6 +106,7 @@ print("Export result:", result)
 | Export한 OBJ에 `o` 태그가 원래 오브젝트 수(16개)가 아니라 143개로 쪼개짐 (`Object Groups`/`Material Groups` 옵션을 조정해도 동일) | 원본 FBX 자체가 143개의 개별 서브메시로 구성되어 있음 — Isaac Sim이 최초 FBX import 때 보여준 그룹 이름은 Blender 오브젝트 이름이 아니라 Isaac Sim 자체의 표시상 그룹핑이라, Blender에 애초에 보존할 원본 이름 정보가 없었음 | 이름 정리는 Blender에서 포기하고 Isaac Sim Stage에서 직접 진행 (프림 선택 → `Ctrl+G`로 의미 단위 재그룹핑) |
 | apt로 설치한 Blender 4.0.2에서 USD export 메뉴 항목 자체가 안 보임, Python에서 `bpy.ops.wm.usd_export()` 호출 시 `AttributeError: ... could not be found` | Ubuntu 저장소의 Blender 패키지가 USD 라이브러리 없이 빌드됨 (오퍼레이터는 등록만 되어 있고 실제 기능 없음) | OBJ 경유 방식으로 진행. USD 직접 export가 꼭 필요하면 apt 대신 Snap(`snap install blender --classic`) 또는 blender.org 공식 tarball 설치 필요 |
 | Isaac Sim에서 import한 프림을 `Group Selected`/rename 시도 시 `Cannot move/rename ancestral prim ...` 경고와 함께 실패 | OBJ import가 지오메트리를 Stage에 직접 굽지 않고, 자동 변환된 `.usd`를 **참조(Reference)**로만 연결함 — 참조 내부 프림은 현재 Stage 기준 "ancestral" 상태라 직접 편집 불가 | Script Editor에서 `stage.Flatten()` 후 `.Export()`로 새 파일 저장 → 그 파일을 `File > Open`으로 **직접** 열기(참조 아님) → 이후 rename/그룹핑 정상 동작 |
+| 그룹핑(`Ctrl+G`) 후 그룹 Xform의 원점이 실제 메쉬 지오메트릭 중심과 크게 어긋남 — 본 트랙에서는 이 시점에 발견되지 않고 한참 뒤 Topic 9(회전 조인트 작업)에서야 "제자리 회전인데 로봇 몸체가 지름 1m 가까운 원을 그림"으로 드러났다 (`robot1` 원점은 실제로 정지해 있었는데, 시각적 메쉬가 원점에서 약 0.65m 떨어져 있었던 것) | `Ctrl+G`가 그룹 Xform의 원점을 메쉬의 지오메트릭 중심이 아니라 그룹 생성 시점의 임의 기준(월드 원점 등)으로 잡음 | `UsdGeom.BBoxCache`로 그룹의 world bbox 중심과 원점(`ComputeLocalToWorldTransform` 위치)을 비교해 어긋남을 확인. 고칠 때는 **그룹 자신의 translate는 절대 건드리지 말 것** — 이미 조인트가 붙어 있다면 물리 바디를 스크립트로 순간이동시키는 셈이라 위험하다(실제로 물리 시뮬레이션이 붕괴할 수 있다). 대신 자식 메쉬의 `points`(vertex) 데이터와 자식 Xform들의 `translate`를 원점 기준 반대 방향으로 shift해서, 그룹의 좌표계 원점 자체는 그대로 두고 지오메트리만 그 원점 위로 재배치한다 |
 
 ## 6. 체크포인트
 
@@ -114,6 +116,7 @@ print("Export result:", result)
 - [ ] OBJ export 후 Isaac Sim에 재-import, 삼각형 수가 목표 범위(20k~60k) 안에서 Blender와 정확히 일치하는지 확인
 - [ ] `stage.Flatten()`으로 참조를 로컬 프림으로 변환
 - [ ] 로봇 본체 / 거치대 프림을 의미 단위로 그룹핑, 중복 메쉬 정리
+- [ ] 그룹핑 후 world bbox 중심과 그룹 원점이 (거의) 일치하는지 확인 — 나중에 회전 조인트를 붙였을 때 안정성에 직결된다
 - [ ] 최종 Stage 저장
 
 ---
