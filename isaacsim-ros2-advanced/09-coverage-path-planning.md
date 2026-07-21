@@ -113,6 +113,17 @@ ros2 launch /home/pw/isaac_assets/vacuum_robot/config/nav2_minimal_launch.py \
 
 **교훈**: (1) 이 프로젝트에서 반복된 "네이티브/스크립트 노드가 예전 상태를 캐싱한다"는 가설이 항상 맞는 건 아니다 — 삭제+재생성+Stop/Play까지 다 해도 안 풀리면, prim 경로 기반 자동 계산 노드 자체의 계산 로직을 의심하고 raw 값을 직접 주입하는 방식으로 우회하는 게 더 빠를 수 있다. (2) Y-up↔Z-up처럼 축 두 개를 단순히 맞바꾸는 매핑은 반사이므로, 위치만 맞다고 방향(회전)까지 맞다고 가정하면 안 된다 — 행렬식을 확인하고 필요하면 각도 부호를 반전할 것.
 
+### 3.11 지도 완성 후 RViz 2D Goal Pose 검증 — 첫 목표는 성공, 이후 혼란과 미해결 사항
+
+지도가 깨끗해진 뒤 RViz의 "2D Goal Pose"로 첫 목표를 보내자 **경로 계획과 주행 모두 성공**(`distance_remaining`이 0.0까지 감소, 3.8절의 오래된 "Nav2 액션 거부" 문제도 자연히 해결됨을 확인). 이후 추가 검증 중 몇 가지가 더 드러났다:
+
+- **일시적 TF 트리 단절**: 이후 목표에서 `bt_navigator`가 "Goal failed"를 뱉었고, 로그에 `Tf has two or more unconnected trees`가 나타났다 — 확인해보니 그 순간엔 이미 자연 복구된 상태(모든 TF 프레임이 방금 발행됨)였다. 장시간 세션의 일시적 딸꾹질로 추정, 재현 시 원인 특정 필요.
+- **코너에 낌 → MPPI가 계속 실패**: 목표 재시도 중 로봇이 벽 코너에 붙은 채로 있어 `Optimizer fail to compute path`/`Controller patience exceeded`가 반복. 벽에서 떨어뜨리면 해결되는 것으로 보임 — 오늘 새로 만든 Gantry 드라이브트레인의 실제 응답 특성에 맞춰 MPPI 파라미터(`wz_max`/`az_max` 등, 2026-07-21 이전에 구드라이브트레인 기준으로 튜닝됨)를 재조정할 필요가 있어 보임, 다음 세션 숙제.
+- **"회전값이 반대로 잡히는 것 같다"는 제보로 시작된 부호 재검증**: `/cmd_vel`을 직접 발행해 `angular.z`/`linear.x`와 실제 리포트된 yaw/위치 변화를 대조한 결과, **회전·전진·후진 전부 정상 부호로 확인됨** (`angular.z=+0.3` → yaw 증가, `linear.x=-0.2` → 공식대로 정확히 후진). 중간에 두 번 "반대로 보이는" 결과가 나왔었는데, 둘 다 원인이 달랐다: (1) Script Editor의 같은 파일 경로 재실행 캐시 버그로 실제로는 수정이 적용 안 된 상태를 테스트한 것 (2) Nav2 컨트롤러가 테스트와 동시에 `/cmd_vel`을 같이 발행하고 있어 오염된 것. **교훈**: 부호 재검증 스크립트는 항상 새 파일명으로 만들고, 노드 값을 직접 읽어 되돌아온 값으로 반영 여부를 확인할 것 — 그리고 수동 테스트 전엔 항상 `ros2 topic info /cmd_vel --verbose`로 다른 퍼블리셔가 없는지 확인할 것.
+- **처음에 "지도가 좌우 반전됐다"고 오판했다가 정정**: 위치 매핑 `(x,z,y)`가 3D 반사(행렬식 -1)인 건 맞지만, 회전행렬로 직접 풀어보면 **2D 평면 배치(벽/도킹스테이션 위치) 자체는 반사되지 않는다** — 반사는 오직 회전 각도의 부호에만 나타나며, 이미 3.10절의 yaw 반전으로 그 부분은 고쳐져 있었다. 지도를 다시 만들 필요는 없었음.
+- **`/World/ActionGraph`에서 죽은 `cmd_vel` 구독자 발견**: Topic 4-5의 센서 그래프 안에 Topic 6 최초 설계(`Write Prim Attribute`로 `physics:velocity` 직접 쓰기, 나중에 조인트 드라이브 방식으로 폐기됨)의 잔재가 그대로 남아있었다. 확인해보니 대상 속성 이름이 `physical:velocity`/`physical:angularVelocity`(정확한 USD 스키마는 `physics:`, `physical`이 아님) — 오타난 죽은 커스텀 속성이라 PhysX에 실제 영향 없음, 오늘 혼란의 원인은 아니었지만 정리 대상으로 남겨둠.
+- **세션 끝 무렵 RViz "2D Goal Pose" 클릭이 안 먹힘**: 몇 차례는 잘 되다가 이후 클릭해도 `/goal_pose`에 메시지가 안 옴 (RViz 노드 자체는 살아있고 퍼블리셔로 등록도 돼 있음). 원인 미확정 — 툴 재선택 필요, 혹은 RViz 자체의 상태 문제. **다음 세션 숙제**.
+
 ## 4. 예상/실제 결과 확인
 
 - Nav2 minimal launch: 6개 노드(controller/planner/smoother/behavior/bt_navigator/waypoint_follower) 전부 `active` 확인.
@@ -148,6 +159,10 @@ ros2 launch /home/pw/isaac_assets/vacuum_robot/config/nav2_minimal_launch.py \
 - [ ] 웨이포인트 시퀀스를 Nav2에 넘겨 방 전체를 커버리지 주행
 - [x] 제자리 회전 드라이브트레인 재설계 완료 (Gantry 리그, 3.9절)
 - [x] SLAM 지도 품질 버그(TF ground truth 오류 + yaw 부호 오류) 완전 해결, 방 크기와 정확히 일치하는 지도 저장 완료 (3.10절)
+- [x] RViz 2D Goal Pose 최소 1회 성공(경로 계획+주행+도착 확인), linear/angular 부호 직접 검증 완료 (3.11절)
+- [ ] Nav2 목표 주행 안정적으로 반복 성공 — 코너에 낌 문제, MPPI 파라미터 재조정 필요 (3.11절)
+- [ ] RViz "2D Goal Pose" 클릭 안 먹는 문제 원인 파악 (3.11절)
+- [ ] 웨이포인트 시퀀스를 Nav2에 넘겨 방 전체를 커버리지 주행
 
 ---
-다음: RViz "2D Goal Pose"로 목표 주행 검증 (지금 지도가 깨끗하니 3.8절의 Nav2 액션 거부 문제가 재현되는지부터 확인) → Boustrophedon 전체 실행
+다음: RViz 2D Goal Pose 클릭 문제부터 확인 → MPPI 파라미터를 Gantry 드라이브트레인에 맞게 재조정 → 목표 주행 안정성 확보 → Boustrophedon 전체 실행
