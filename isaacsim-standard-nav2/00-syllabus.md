@@ -39,7 +39,7 @@
 |---|---|---|---|
 | 1 | 에셋 선정 & 새 스테이지 구성 | [01-asset-selection-new-stage.md](01-asset-selection-new-stage.md) | 완료 |
 | 2 | 로봇 물리/센서 구조 파악 | [02-physics-sensor-structure.md](02-physics-sensor-structure.md) | 완료 |
-| 3 | ROS2 브릿지 & OmniGraph 연결 | — | 진행 예정 |
+| 3 | ROS2 브릿지 & OmniGraph 연결 | [03-ros2-bridge-omnigraph.md](03-ros2-bridge-omnigraph.md) | 진행 중 (cmd_vel 구동 완료, odom/tf/lidar 남음) |
 | 4 | SLAM 지도 작성 | — | 진행 예정 |
 | 5 | Nav2 목표 주행 검증 | — | 진행 예정 |
 

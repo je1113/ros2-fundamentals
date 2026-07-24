@@ -107,7 +107,7 @@ Nav2+MoveIt2 통합 캡스톤(Part 3) 계획은 보류하고, Isaac Sim 기반 �
 |---|---|---|---|
 | 1 | 에셋 선정 & 새 스테이지 구성 | [isaacsim-standard-nav2/01-asset-selection-new-stage.md](isaacsim-standard-nav2/01-asset-selection-new-stage.md) | 완료 |
 | 2 | 로봇 물리/센서 구조 파악 | [isaacsim-standard-nav2/02-physics-sensor-structure.md](isaacsim-standard-nav2/02-physics-sensor-structure.md) | 완료 |
-| 3 | ROS2 브릿지 & OmniGraph 연결 | — | 진행 예정 |
+| 3 | ROS2 브릿지 & OmniGraph 연결 | [isaacsim-standard-nav2/03-ros2-bridge-omnigraph.md](isaacsim-standard-nav2/03-ros2-bridge-omnigraph.md) | 진행 중 |
 | 4 | SLAM 지도 작성 | — | 진행 예정 |
 | 5 | Nav2 목표 주행 검증 | — | 진행 예정 |
 
