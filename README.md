@@ -1,6 +1,6 @@
 # ROS 2 Fundamentals — 기초부터 Nav2/MoveIt2, Isaac Sim까지
 
-ROS 2를 패키지 생성부터 자율주행(Nav2)·모션플래닝(MoveIt2)까지 순서대로 실습하는 튜토리얼 기록이다. `basics`/`nav2-advanced`/`moveit2-advanced`는 Isaac Sim 없이 표준 도구(Gazebo, TurtleBot3, Panda 등)로만 진행하고, `isaacsim-ros2-advanced`는 Isaac Sim 기반으로 커스텀 로봇(로봇청소기)을 하드웨어 가상화부터 자율주행까지 엔드투엔드로 다룬다.
+ROS 2를 패키지 생성부터 자율주행(Nav2)·모션플래닝(MoveIt2)까지 순서대로 실습하는 튜토리얼 기록이다. `basics`/`nav2-advanced`/`moveit2-advanced`는 Isaac Sim 없이 표준 도구(Gazebo, TurtleBot3, Panda 등)로만 진행하고, `isaacsim-ros2-advanced`는 Isaac Sim 기반으로 커스텀 로봇(로봇청소기)을 하드웨어 가상화부터 자율주행까지 엔드투엔드로 다룬다. `basics-cpp`는 `basics`(Python/rclpy)를 마친 뒤, 통신 개념을 다시 설명하지 않고 rclcpp가 실제로 다르게 동작하는 지점만 짚는 압축 트랙이다.
 
 ## 대상 독자
 
@@ -11,9 +11,11 @@ ROS 2를 패키지 생성부터 자율주행(Nav2)·모션플래닝(MoveIt2)까�
 
 ```
 basics/                  Part 0 — ROS 2 기초 13개 토픽 + 미니 프로젝트 1개 (완료)
+basics-cpp/              Part 0-CPP — rclcpp 핵심 차이 6개 토픽 (작성됨, 실행 검증 예정)
 nav2-advanced/           Part 1 — Nav2 자율주행 7개 토픽 (완료)
 moveit2-advanced/        Part 2 — MoveIt2 모션플래닝 3개 토픽 (완료)
-isaacsim-ros2-advanced/  Isaac Sim × ROS2 — 로봇청소기 시뮬레이션 프로젝트 (Part A~D, 10개 토픽, 진행 예정)
+isaacsim-ros2-advanced/  Isaac Sim × ROS2 — 로봇청소기 시뮬레이션 프로젝트 (Part A~D, 10개 토픽, 진행 중)
+isaacsim-standard-nav2/  Isaac Sim × ROS2 — 표준 에셋 기반 Nav2 검증 트랙 (5개 토픽, 진행 예정)
 ```
 
 각 트랙 폴더의 `00-syllabus.md`가 총론이고, `NN-topic.md`가 토픽별 실습 가이드다. 실습에 사용한 ROS 2 워크스페이스 코드는 트랙별로 별도 관리한다.
@@ -38,6 +40,21 @@ isaacsim-ros2-advanced/  Isaac Sim × ROS2 — 로봇청소기 시뮬레이션 �
 | 14 | 미니 프로젝트: 행맨 게임 | [basics/14-hangman-game.md](basics/14-hangman-game.md) |
 
 전체 목표: [basics/00-syllabus.md](basics/00-syllabus.md)
+
+## Part 0-CPP — ROS 2 Basics (C++/rclcpp)
+
+`basics/`를 마친 뒤 이어서 보는 트랙. 통신 개념은 다시 설명하지 않고, rclcpp가 rclpy와 실제로 다르게 동작/작성되는 지점만 짚는다. 인터페이스는 새로 만들지 않고 `ros2_basics_msgs`를 재사용하며, 여러 토픽에서 Python 노드와 C++ 노드를 함께 실행해 상호운용을 확인한다.
+
+| # | 주제 | 가이드 |
+|---|---|---|
+| 1 | 패키지 생성 & 빌드 구조 | [basics-cpp/01-package-creation.md](basics-cpp/01-package-creation.md) |
+| 2 | 노드 & Publisher/Subscriber | [basics-cpp/02-node-pub-sub.md](basics-cpp/02-node-pub-sub.md) |
+| 3 | 커스텀 인터페이스 소비 & 상호운용 | [basics-cpp/03-custom-interfaces.md](basics-cpp/03-custom-interfaces.md) |
+| 4 | 서비스 비동기 패턴 | [basics-cpp/04-service-async.md](basics-cpp/04-service-async.md) |
+| 5 | Executor & 콜백 그룹 | [basics-cpp/05-executor-callback-groups.md](basics-cpp/05-executor-callback-groups.md) |
+| 6 | 컴포지션 (rclcpp_components) | [basics-cpp/06-composition.md](basics-cpp/06-composition.md) |
+
+전체 목표: [basics-cpp/00-syllabus.md](basics-cpp/00-syllabus.md)
 
 ## Part 1 — Nav2 Advanced
 
@@ -81,6 +98,20 @@ Nav2+MoveIt2 통합 캡스톤(Part 3) 계획은 보류하고, Isaac Sim 기반 �
 | 10 | 기능 구현 & 예외 처리 | — | 진행 예정 |
 
 전체 목표: [isaacsim-ros2-advanced/00-syllabus.md](isaacsim-ros2-advanced/00-syllabus.md)
+
+## Isaac Sim × ROS2 — 표준 에셋 기반 Nav2 검증 트랙
+
+로봇청소기 프로젝트(Part D)에서 벽/코너 근처 목표로 이동할 때 로봇이 끼이는(wedging) 문제의 원인이 로봇 하드웨어(메쉬/조인트/콜라이더)인지 Nav2/설정인지 격리되지 않았다. 검증된 Isaac Sim 표준 로봇 에셋으로 새 USD 스테이지를 정석대로 구성해 같은 시나리오를 재현, 원인을 좁히는 독립 트랙.
+
+| # | 주제 | 가이드 | 상태 |
+|---|---|---|---|
+| 1 | 에셋 선정 & 새 스테이지 구성 | [isaacsim-standard-nav2/01-asset-selection-new-stage.md](isaacsim-standard-nav2/01-asset-selection-new-stage.md) | 완료 |
+| 2 | 로봇 물리/센서 구조 파악 | [isaacsim-standard-nav2/02-physics-sensor-structure.md](isaacsim-standard-nav2/02-physics-sensor-structure.md) | 완료 |
+| 3 | ROS2 브릿지 & OmniGraph 연결 | — | 진행 예정 |
+| 4 | SLAM 지도 작성 | — | 진행 예정 |
+| 5 | Nav2 목표 주행 검증 | — | 진행 예정 |
+
+전체 목표: [isaacsim-standard-nav2/00-syllabus.md](isaacsim-standard-nav2/00-syllabus.md)
 
 ## 라이선스 / 참고
 
