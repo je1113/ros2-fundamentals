@@ -6,7 +6,7 @@
 - Twist 메시지의 `vector3` 필드에서 필요한 축 성분만 뽑아 스칼라 입력에 연결하는 방법(`Break Vector3`)을 익힌다.
 - OmniGraph 노드의 Property 패널 값 표시를 맹신하지 않고, `og.Controller`/`omni.graph.core`로 실제 저장된 속성값을 직접 검증하는 디버깅 습관을 기른다.
 - `Isaac Compute Odometry Node` + `ROS2 Publish Odometry`/`ROS2 Publish Raw Transform Tree`/`ROS2 Publish Clock`으로 시뮬레이션 시간 기준 odom/tf/clock을 퍼블리시하는 표준 패턴을 익힌다.
-- RTX Lidar 기반 센서를 ROS2로 퍼블리시할 때 render product(Replicator) 자원이 어떻게 생성/캐싱되는지 이해하고, 이 세션에서 만난 상위 버전(Kit 6.0) 특유의 한계를 기록한다(3-C, 미해결).
+- RTX Lidar 기반 센서를 ROS2로 퍼블리시할 때 render product(Replicator) 자원이 어떻게 생성/캐싱되는지 이해하고, Kit 6.0에서 `isaacsim.sensors.rtx`(구버전)와 `isaacsim.sensors.experimental.rtx`(신버전) 두 API가 공존하는 이유와 차이를 기록한다.
 
 ## 2. 진행 상태 요약
 
@@ -14,7 +14,7 @@
 |---|---|---|
 | 3-A | `/cmd_vel` → Differential/Articulation Controller 바퀴 구동 | 완료 |
 | 3-B | Odometry/TF/Clock 퍼블리시 | 완료 |
-| 3-C | LiDAR(RTX) 퍼블리시 | **미해결 — 다음 세션** |
+| 3-C | LiDAR(RTX) 퍼블리시 | 완료 (2026-07-27) |
 
 ## 2. 핵심 개념
 
@@ -109,13 +109,35 @@ ros2 topic echo /odom --once     # frame_id: odom, child_frame_id: base_link
 
 **미해결로 다음 세션에 넘김.** 3-A/3-B는 완전히 검증됐으므로 SLAM(Topic 4)/Nav2(Topic 5)로 넘어가기 전에 LiDAR를 반드시 먼저 해결해야 한다(slam_toolbox가 `/scan`을 필요로 함).
 
+### 3.11 LiDAR 퍼블리시 해결 (2026-07-27)
+
+**진짜 원인은 두 가지가 겹쳐 있었다.**
+
+첫째, `isaacsim.sensors.rtx.LidarRtx(config_file_name=...)`는 이 Kit 6.0 설치본에서 **`extsDeprecated`로 옮겨진 구버전 API**였다. GUI 메뉴(`Create > Sensors > RTX Lidar > ...`)를 담당하는 `isaacsim.sensors.rtx.ui` 확장의 소스(`isaacsim.sensors.rtx.ui/isaacsim/sensors/rtx/ui/extension.py`)를 직접 읽어보면, 이미 신버전 `isaacsim.sensors.experimental.rtx.Lidar.create()`로 갈아탄 상태였다 — 즉 메뉴로 만들면 새 파이프라인을, 구버전 Python 클래스로 직접 만들면 다른 파이프라인을 타는 불일치가 있었다. 지난 세션에 렌더 프로덕트가 아예 등록되지 않던 문제는 이 구버전 경로의 한계였을 가능성이 높다.
+
+둘째, 그리고 이게 실질적으로 더 컸는데 — **씬에 로봇과 `GroundPlane`(평평한 바닥) 말고는 아무 지오메트리도 없었다.** 2D LiDAR는 수평면만 스캔하므로 바닥은 애초에 감지 대상이 아니고, 벽/장애물이 하나도 없는 상태에서는 RTX 레이캐스트가 정말로 0개의 리턴을 만드는 게 **물리적으로 정상 동작**이다. `ROS2PublishLaserScan: GMO buffer is empty or invalid. Skipping.`은 이 "0개 리턴"을 "무효"로 취급해 아예 메시지 발행 자체를 건너뛰는 것으로 보인다(실제 ROS 규약이라면 `range_max`/`Inf`로 채운 유효한 메시지를 내야 할 상황인데, 이 노드는 완전히 건너뜀 — 별도로 봐둘 만한 동작).
+
+**해결 절차:**
+
+1. 기존 망가진 `Lidar2D` 서브트리(구버전 API로 만든 것, 재질 143개 포함)와 `isaac_create_render_product`/`ros2_rtx_lidar_helper` 노드를 삭제.
+2. Outliner에서 `chassis_link`를 선택한 뒤 GUI 메뉴 `Create > Sensors > RTX Lidar > Slamtec > RPLIDAR S2E`로 2D LiDAR를 재생성. 신버전 `Lidar.create()`는 RPLIDAR_S2E 같은 서브트리형 에셋에서도 실제 `OmniLidar` leaf prim을 **자동으로 찾아서** 반환하므로, 지난 세션처럼 `Usd.PrimRange`로 직접 뒤질 필요가 없어졌다.
+3. wrapper Xform(`RPLIDAR_S2E`)의 Translate를 기존 `XT_32_10Hz`와 같은 위치 `(-0.06, 0, 0.38)`로 설정(GUI, Property 패널에 직접 입력).
+4. Action Graph에 `Isaac Create Render Product`(`Camera Prim` = leaf `OmniLidar` prim, `.../RPLIDAR_S2E/RPLidar_S2E`) + `ROS2 RTX Lidar Helper`(`Topic Name=scan`, `Type=laser_scan`, `Frame Id=base_scan`)를 GUI로 다시 연결.
+5. **또 한 번 재현된 기존 버그**: `Camera Prim` relationship을 GUI로 연결했다고 표시됐는데 `og.Controller.get`으로 확인하면 실제로는 빈 배열 — `wheelRadius` 사례와 동일 계열. `og.Controller.set(..., ["/World/carter_v1/chassis_link/RPLIDAR_S2E/RPLidar_S2E"])`로 강제 설정해서 해결. **이 값은 Isaac Sim 크래시/재시작 후 다시 빈 배열로 돌아왔다** — Stage를 Save해도 이 특정 relationship이 매번 살아남는다는 보장이 없어 보이니, Play 전에 매번 `og.Controller.get`으로 재검증하는 습관이 필요하다.
+6. 씬에 아무 장애물도 없다는 걸 깨닫고, 로봇 앞 3m 지점에 2m 테스트 큐브(`/World/TestWall`)를 스크립트로 배치.
+7. `ros2 topic hz /scan` → ~10Hz 확인, `rclpy` 구독 스크립트로 원시 메시지 파싱 → 3200개 포인트 중 469개가 유효 거리(0.88~1.02m)로 확인됨. **완전히 해결.**
+
+**주의: `renderer.raytracingMotion.enabled`를 Play 도중에 켰다가 Isaac Sim이 크래시했다.** Radar/Lidar Motion BVH 관련 carb 설정인데, 이미 생성된 Hydra 엔진과 설정이 맞지 않으면(`hydra engine condiguration is not suitable for engine...`) 뷰포트 생성 실패가 무한 반복되다 프로세스가 죽는다. **이 설정은 세션 중간에 토글하지 말 것** — 필요하다면 앱을 완전히 재시작해서 시작 시점부터 적용해야 한다. 결과적으로 이 설정은 오늘 겪은 버그와 무관했다(끈 상태로도 정상 동작 확인).
+
+**후속 확인 필요 (다음 세션 또는 Topic 4에서)**: 유효 469개 포인트가 좁은 각도(~53°)·좁은 거리대(0.88~1.02m)에 몰려 있는 게, 3m 앞의 테스트 벽이 아니라 **로봇 자기 자신의 섀시를 스캔한 값일 가능성**이 있다. SLAM/Nav2를 붙이기 전에 실제로 벽까지의 거리(~2m대)가 잡히는지, 혹은 마운트 각도/FOV 마스킹이 필요한지 확인할 것.
+
 ## 4. 예상/실제 결과 확인
 
 - `linear.x=0.2`로 퍼블리시하면 로봇이 앞으로 이동해야 한다. (확인됨)
 - `angular.z=0.5`로 퍼블리시하면 제자리(또는 원호)로 회전해야 한다. (확인됨)
 - `ros2 topic info /cmd_vel --verbose`에서 `_World_CarterGraph_ros2_subscribe_twist` 노드가 Subscription으로 보여야 한다. (확인됨)
 - `/odom`, `/tf`, `/clock`이 각각 ~50Hz로 흐르고, `/odom`/`/tf`의 frame_id가 `odom`→`base_link`로 정확히 찍혀야 한다. (확인됨)
-- `/scan`이 `sensor_msgs/LaserScan` 타입으로 advertise되고 실제 메시지가 발행돼야 한다. (**미확인 — GMO buffer 문제로 토픽만 뜨고 데이터 없음**)
+- `/scan`이 `sensor_msgs/LaserScan` 타입으로 advertise되고 실제 메시지가 발행돼야 한다. (확인됨 — ~10Hz, 3200포인트 중 469개 유효 거리값)
 
 ## 5. 알려진 문제와 해결
 
@@ -129,7 +151,9 @@ ros2 topic echo /odom --once     # frame_id: odom, child_frame_id: base_link
 | (3-C) `Isaac Create Render Product`의 `Camera Prim` 관계를 GUI로 설정했다고 표시됐는데 실제로는 빈 배열(`[]`)로 저장됨 | Property 패널의 relationship 필드 표시와 실제 USD 값이 다시 한번 어긋난 사례(`wheelRadius` 사례와 동일 계열) | `og.Controller.get/set`으로 `inputs:cameraPrim` attribute를 직접 확인/설정 |
 | (3-C) `config_file_name="Example_Rotary_2D"`로 만든 2D LiDAR가 이상한 128채널/4-azimuth-클러스터 구성으로 생성됨 | 이 Isaac Sim 설치본(Kit 6.0)에는 그 이름의 설정 파일이 존재하지 않음(`isaacsim.sensors.rtx`가 `extsDeprecated`로 이동, 예제용 `Example_*` 설정 자체가 제거됨) — 존재하지 않는 이름을 줘도 에러 없이 알 수 없는 값으로 조용히 대체됨 | `find ~/isaacsim_env -ipath "*lidar_configs*" -iname "*.json"`로 실제 존재하는 설정 파일 목록을 먼저 확인. 이 설치본엔 `SLAMTEC/RPLIDAR_S2E.json` 같은 실제 2D 스캐너 프로파일이 있음 |
 | (3-C) `RPLIDAR_S2E` 설정으로 만든 prim(`Lidar2D`)의 속성을 읽었더니 스키마가 하나도 없는 빈 `Xform`으로 나옴 | 이 프로파일은 `prim_path` 자체를 센서로 만드는 게 아니라, `materials`+`mesh`+실제 `OmniLidar` 센서를 자식으로 갖는 서브트리를 생성함(Hesai 계열 설정과 다른 동작) | `Usd.PrimRange`로 하위 전체를 순회해 실제 `OmniLidar` 타입 prim을 찾음 — 이 경우 `.../Lidar2D/RPLidar_S2E` |
-| (3-C, 미해결) `Camera Prim`을 올바른 중첩 prim으로 고쳐도 `ROS2PublishLaserScan: GMO buffer is empty or invalid. Skipping.`가 매 프레임 반복, `/scan` 토픽은 뜨지만 메시지가 전혀 안 옴 | 확실히 규명 못함. Isaac Sim 완전 재시작 후에도 재현되고, 재시작 후에는 렌더 프로덕트가 세션당 1개로 캡핑된 것처럼 보여(다른 이름의 `Isaac Create Render Product` 노드를 새로 만들어도 새 render product가 등록되지 않음) 같은 세션 안에서 XT_32_10Hz로 바꿔 point_cloud로 교차검증하는 것도 막힘 | 미해결. 다음 세션에 재시작을 여러 번 더 시도하거나, Kit 6.0의 render product 개수 제한 관련 설정을 찾아보거나, 아예 다른 2D 프로파일(SICK TIM781 등)을 시도해볼 것 |
+| `Camera Prim`을 올바른 중첩 prim으로 고쳐도 `ROS2PublishLaserScan: GMO buffer is empty or invalid. Skipping.`가 매 프레임 반복, `/scan` 토픽은 뜨지만 메시지가 전혀 안 옴 | 두 원인이 겹침: (1) 구버전 `isaacsim.sensors.rtx.LidarRtx`로 만든 센서라 render product가 제대로 등록 안 됨, (2) 씬에 로봇+바닥 말고 장애물이 하나도 없어서 리턴이 0개인 게 애초에 물리적으로 정상 | (1) 신버전 `isaacsim.sensors.experimental.rtx`가 적용된 GUI 메뉴(`Create > Sensors > RTX Lidar > ...`)로 센서 재생성. (2) 로봇 앞에 테스트용 큐브를 놓아 실제로 부딪힐 대상을 만듦. 3.11절 참고 |
+| `Isaac Create Render Product`의 `Camera Prim` relationship이 `og.Controller.get`으로 확인하면 빈 배열로 초기화됨 (GUI 재연결·Isaac Sim 크래시-재시작 양쪽에서 재현) | Property 패널 relationship 필드 표시와 실제 USD 값이 어긋나는 사례(`wheelRadius`와 동일 계열)이자, 이 relationship 자체가 크래시/재시작을 안전하게 못 버티는 것으로 보임 | `og.Controller.set(...)`으로 강제 설정. Play 하기 직전에 매번 `og.Controller.get`으로 재검증하는 습관화 |
+| `renderer.raytracingMotion.enabled`를 Play 도중 켰더니 `UsdContext::createViewport - failed to create Hydra Engine thread for viewport`가 무한 반복되며 Isaac Sim이 크래시 | 이미 생성된 Hydra 엔진의 설정(uid 1024, 기존 tickRate)과 새로 요구되는 엔진 설정(모션 레이트레이싱 강제 ON)이 충돌 | 세션 중간에 이 설정을 토글하지 말 것. 결과적으로 이 설정은 오늘 문제 해결에 필요하지 않았음(꺼진 상태로 정상 동작) |
 
 ## 6. 체크포인트
 
@@ -140,12 +164,14 @@ ros2 topic echo /odom --once     # frame_id: odom, child_frame_id: base_link
 - [x] `Articulation Controller`의 `targetPrim`(`/World/carter_v1`)과 `jointNames`(`["left_wheel","right_wheel"]`) 설정
 - [x] `/cmd_vel` linear.x, angular.z 각각 퍼블리시해 실제 이동/회전 확인
 - [x] Odometry/TF/Clock 그래프 구성, `/odom`·`/tf`·`/clock` ~50Hz 확인
-- [ ] LiDAR(`/scan`) 실제 데이터 발행 확인 — **미해결, 다음 세션**
+- [x] LiDAR(`/scan`) 실제 데이터 발행 확인 — 2026-07-27 완료, ~10Hz, 469/3200 유효 포인트
 
 ## 7. 이번 세션에서 새로 알게 된 환경 사실
 
-- 이 Isaac Sim 설치본은 Kit **6.0**이다(`~/.nvidia-omniverse/logs/Kit/Isaac-Sim Full/6.0/...`로 확인). [[isaacsim_version_upgrade]] 메모리에는 "5.1.0-rc.19 → 6.x 업그레이드, 아직 시작 안 함"으로 남아있었는데, 실제로는 이미 6.0으로 올라와 있었다 — 이번 세션에서 겪은 `Example_Rotary_2D` 부재, `extsDeprecated` 네임스페이스, render product 캡핑처럼 vacuum 프로젝트(5.1.0 기준)와 다르게 동작하는 지점들의 원인일 가능성이 높다.
+- 이 Isaac Sim 설치본은 Kit **6.0**이다(`~/.nvidia-omniverse/logs/Kit/Isaac-Sim Full/6.0/...`로 확인). [[isaacsim_version_upgrade]] 메모리에는 "5.1.0-rc.19 → 6.x 업그레이드, 아직 시작 안 함"으로 남아있었는데, 실제로는 이미 6.0으로 올라와 있었다 — `Example_Rotary_2D` 부재, `extsDeprecated` 네임스페이스처럼 vacuum 프로젝트(5.1.0 기준)와 다르게 동작하는 지점들의 원인이었다.
 - 클립보드 복사가 이 세션 환경에서 아예 동작하지 않아, 모든 스크립트를 파일로 저장하고 Script Editor의 `File > Open`으로 로드하는 방식을 기본 작업 패턴으로 썼다([[isaacsim_standard_nav2_curriculum]] 참고).
+- Kit 6.0에서 `isaacsim.sensors.rtx`(구버전, `config_file_name=` JSON 기반)는 `extsDeprecated`로 옮겨졌고, `isaacsim.sensors.rtx.ui`/`isaacsim.sensors.experimental.rtx`(신버전, `Lidar.create(config=..., variant=...)`)가 그 자리를 대체했다. GUI 메뉴는 이미 신버전을 쓰므로, **RTX 센서는 Python 클래스를 직접 코드로 쓰기보다 GUI 메뉴로 만드는 쪽이 이 Kit 버전에서는 더 안전하다.**
+- "render product가 세션당 1개로 캡핑된 것처럼 보임"이라는 지난 세션의 추정은 이번 세션에 재현되지 않았다 — 같은 세션 안에서 두 번째 render product(신버전 API 테스트용)도 정상 등록됐다. 캡핑이 아니라 구버전 API 자체의 등록 실패였을 가능성이 높다.
 
 ---
-다음: `04-slam-grid-map.md` (미작성) — 단, 착수 전에 3-C(LiDAR)를 먼저 해결해야 함 (slam_toolbox가 `/scan` 필요)
+다음: `04-slam-grid-map.md` (미작성)
