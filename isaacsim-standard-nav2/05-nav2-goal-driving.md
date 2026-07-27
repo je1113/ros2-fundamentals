@@ -33,7 +33,29 @@ sed -e 's/base_frame_id: "base_footprint"/base_frame_id: "base_link"/g' \
 - 모든 `base_frame_id: "base_footprint"` → `"base_link"` (amcl, velocity_smoother, docking_server 3곳 — 이 트랙엔 `base_footprint` 프레임이 없음, `robot_base_frame`은 이미 기본값이 `base_link`라 안 건드림)
 - `robot_radius: 0.22` → `0.35` (local/global costmap 2곳, Carter의 실제 바디 크기에 맞춤)
 
-### 3.2 Nav2 브링업 + 초기 포즈 (타이밍 이슈 해결)
+### 3.2 RViz2 먼저 띄우기
+
+**AMCL 초기 포즈는 브링업 시작 후 약 10초 안에 줘야 한다**(2.의 "핵심 개념" 참고 — 그 안에 못 주면 `lifecycle_manager_navigation`이 브링업 자체를 중단한다). CLI로 좌표를 손으로 옮겨 적다 보면 이 창을 놓치기 쉬우므로, **RViz2를 먼저 띄워 클릭 한 번으로 바로 줄 수 있게 준비해둔다.**
+
+새 터미널에서:
+
+```bash
+conda deactivate
+source /opt/ros/jazzy/setup.bash
+rviz2
+```
+
+RViz에서:
+1. 왼쪽 `Displays` 패널의 `Global Options` → `Fixed Frame`을 `map`으로 설정
+2. `Add` → `By display type` → `Map` 추가, `Topic`을 `/map`으로 설정
+3. `Add` → `By display type` → `LaserScan` 추가, `Topic`을 `/scan`으로 설정
+4. `Add` → `By display type` → `TF` 추가 (프레임 관계 확인용)
+
+이 시점엔 아직 `nav2_bringup`을 안 띄웠으니 `Map`/`LaserScan`이 비어있는 게 정상이다.
+
+### 3.3 Nav2 브링업 + RViz "2D Pose Estimate"로 초기 포즈 주기
+
+**다른 새 터미널**에서:
 
 ```bash
 conda deactivate
@@ -44,30 +66,18 @@ ros2 launch nav2_bringup bringup_launch.py \
   use_sim_time:=true autostart:=true
 ```
 
-**처음 두 번은 실패했다** — `/odom`을 확인하고 `sed`로 파라미터 파일을 준비하는 등 다른 작업을 하다 초기 포즈를 너무 늦게(브링업 시작 후 30초 이상 지나서) 보냈더니, `global_costmap`이 `base_link`→`map` transform 대기 타임아웃으로 활성화 실패 → `lifecycle_manager_navigation`이 브링업 자체를 중단했다. **해결**: 브링업을 띄우는 동시에 `ros2 topic pub -r 2 /initialpose ...`를 `timeout 25`로 감싸 백그라운드에서 2Hz로 25초간 반복 발행 — AMCL 구독자가 언제 준비되든 놓치지 않고 몇 초 안에 전달되도록 했다.
+명령을 실행하자마자 RViz로 돌아간다. `map_server`(localization 그룹)는 몇 초 안에 활성화되므로 RViz의 `Map` 디스플레이에 방 지도가 뜨기 시작한다 — 지도가 보이면:
 
-`nav2_bringup`을 실행한 터미널과는 **다른 새 터미널**에서, 브링업을 띄우자마자 바로 이어서 실행한다 (브링업이 foreground를 점유하고 있으므로):
+1. RViz 상단 툴바에서 **"2D Pose Estimate"** 클릭
+2. 지도 위에서 로봇이 있을 법한 위치를 **클릭한 채로 드래그** — 클릭 지점이 위치, 드래그 방향이 로봇이 바라보는 방향(대략적이어도 된다, AMCL이 스캔 매칭으로 알아서 보정한다)
 
-먼저 로봇의 현재 위치를 확인한다 (맵을 만들 때와 같은 `odom` 원점 기준이라, 이 값을 그대로 `map` 프레임 초기 추정치로 써도 충분히 가깝다):
+**이 클릭도 브링업 시작 후 약 10초 안에는 해야 한다** — RViz를 미리 띄워두고 지도가 보이자마자 바로 클릭하면 이 창을 넉넉히 지킬 수 있다. (CLI로 `ros2 topic pub /initialpose ...`를 직접 보내도 되지만, `/odom`을 먼저 찍어 좌표를 옮겨 적는 절차가 번거롭고 그만큼 창을 놓치기 쉬우므로 RViz 클릭 방식을 권장한다.)
 
-```bash
-conda deactivate
-source /opt/ros/jazzy/setup.bash
-ros2 topic echo /odom --once
-```
+성공 시 `nav2_bringup`을 실행한 터미널 로그에 `lifecycle_manager_localization: Managed nodes are active`, `lifecycle_manager_navigation: Managed nodes are active`가 순서대로 뜨고, RViz의 `TF`/`LaserScan` 디스플레이에 방 벽과 겹치는 실제 스캔 라인이 보인다.
 
-`pose.pose.position`(`x`,`y`)과 `pose.pose.orientation`(`x`,`y`,`z`,`w`) 값을 그대로 아래 명령의 해당 자리에 넣는다:
+### 3.4 열린 공간 목표 (동작 확인용)
 
-```bash
-conda deactivate
-source /opt/ros/jazzy/setup.bash
-timeout 25 ros2 topic pub -r 2 /initialpose geometry_msgs/msg/PoseWithCovarianceStamped \
-  "{header: {frame_id: 'map'}, pose: {pose: {position: {x: <위에서 확인한 x>, y: <위에서 확인한 y>, z: 0.0}, orientation: {x: <확인한 x>, y: <확인한 y>, z: <확인한 z>, w: <확인한 w>}}, covariance: [0.25,0,0,0,0,0, 0,0.25,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0.0685]}}"
-```
-
-성공 시 로그에 `lifecycle_manager_localization: Managed nodes are active`, `lifecycle_manager_navigation: Managed nodes are active`가 순서대로 뜨고 `/tf`에 `map→odom`, `odom→base_link` 두 쌍이 모두 나타난다.
-
-### 3.3 열린 공간 목표 (동작 확인용)
+RViz 상단 툴바의 **"Nav2 Goal"**(또는 "2D Nav Goal") 버튼으로 지도 위 아무 빈 공간이나 클릭+드래그해서 목표를 보내도 되지만, 이후 코너 테스트는 정확한 좌표가 중요하므로 여기서는 CLI로 통일한다:
 
 ```bash
 conda deactivate
@@ -76,9 +86,9 @@ ros2 action send_goal /navigate_to_pose nav2_msgs/action/NavigateToPose \
   "{pose: {header: {frame_id: 'map'}, pose: {position: {x: 1.0, y: -1.0, z: 0.0}, orientation: {w: 1.0}}}}"
 ```
 
-`Goal finished with status: SUCCEEDED` — 이후 코너 테스트 전에 스택이 기본적으로 정상 동작함을 먼저 확인.
+`Goal finished with status: SUCCEEDED` — 이후 코너 테스트 전에 스택이 기본적으로 정상 동작함을 먼저 확인. RViz에서는 로봇이 실제로 그 지점까지 이동하는 경로/움직임이 보인다.
 
-### 3.4 벽/코너 근접 목표 4개 — wedging 재현 시도
+### 3.5 벽/코너 근접 목표 4개 — wedging 재현 시도
 
 6m×5m 방(벽 안쪽 면: x∈[-2.95,2.95], y∈[-2.45,2.45])의 네 코너 각각에서 안쪽으로 약 0.35~0.55m 들어간 지점(로봇 반지름 `0.35`와 비슷한 수준의 여유)으로 하나씩 순서대로 보낸다. `--feedback`을 붙이면 `number_of_recoveries`(Spin/BackUp 등 복구 행동이 몇 번 트리거됐는지)를 실시간으로 볼 수 있다 — wedging이 재현된다면 여기 값이 계속 올라간다.
 
@@ -129,7 +139,7 @@ ros2 action send_goal /navigate_to_pose nav2_msgs/action/NavigateToPose \
 
 | 증상 | 원인 | 해결 |
 |---|---|---|
-| `ros2 action send_goal /navigate_to_pose ...` → `Goal was rejected` | `lifecycle_manager_navigation`이 코스트맵 활성화 타임아웃으로 브링업 자체를 중단(`bt_navigator`가 inactive 상태) | 초기 포즈를 브링업 직후 몇 초 안에 반드시 전달. `timeout N ros2 topic pub -r 2 /initialpose ...`로 브링업과 동시에 몇 초간 반복 발행해 타이밍 경쟁을 없앰 (3.2절) |
+| `ros2 action send_goal /navigate_to_pose ...` → `Goal was rejected` | `lifecycle_manager_navigation`이 코스트맵 활성화 타임아웃으로 브링업 자체를 중단(`bt_navigator`가 inactive 상태) | 초기 포즈를 브링업 직후 10초 안에 반드시 전달. RViz를 미리 띄워두고 "2D Pose Estimate"로 즉시 클릭하는 게 가장 안전 (3.2~3.3절). 자동화가 필요하면 `timeout N ros2 topic pub -r 2 /initialpose ...`를 브링업과 동시에 백그라운드로 반복 발행하는 방법도 있음 |
 | `global_costmap`가 `Timed out waiting for transform from base_link to map` 반복, 결국 `Failed to activate global_costmap` | `base_link`→`map` TF는 AMCL이 초기 포즈를 받아야만 발행하기 시작하는데, 그 전에 코스트맵의 대기 시간(하드코딩된 값, 파라미터로 못 늘림)이 먼저 끝나버림 | 위와 동일 — 초기 포즈를 최대한 빨리 전달하는 것 외엔 근본 해결책이 없음(재시도 로직이 없어 한 번 실패하면 프로세스를 완전히 재시작해야 함) |
 | `ros2 launch ... map:=~/... params_file:=~/...`에서 `[Errno 2] No such file or directory: '~/isaac_assets/...'` — `~`가 문자 그대로 전달됨 | `이름:=값`은 `이름` 부분에 콜론이 섞여 있어 셸이 유효한 변수 대입문(`name=value`)으로 인식하지 못함 — 셸의 "대입문에서 `=` 뒤 `~`는 확장" 규칙이 적용 안 돼서 `~`가 그대로 리터럴 문자로 넘어감 | `~` 대신 `$HOME`(변수 치환이라 어디서든 확장됨)이나 전체 절대경로를 씀. vacuum 프로젝트에서도 이미 겪었던 것과 같은 함정([[isaacsim_ros2_advanced_curriculum]]) |
 
