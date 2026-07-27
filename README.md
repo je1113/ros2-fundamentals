@@ -38,6 +38,7 @@ isaacsim-standard-nav2/  Isaac Sim × ROS2 — 표준 에셋 기반 Nav2 검증 
 | 12 | rosbag2 & 디버깅 툴 | [basics/12-rosbag-debugging.md](basics/12-rosbag-debugging.md) |
 | 13 | ros2_control 입문 | [basics/13-ros2-control.md](basics/13-ros2-control.md) |
 | 14 | 미니 프로젝트: 행맨 게임 | [basics/14-hangman-game.md](basics/14-hangman-game.md) |
+| 15 | rqt_console (추가 토픽) | [basics/15-rqt-console.md](basics/15-rqt-console.md) |
 
 전체 목표: [basics/00-syllabus.md](basics/00-syllabus.md)
 
