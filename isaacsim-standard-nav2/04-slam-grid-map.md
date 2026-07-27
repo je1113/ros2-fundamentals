@@ -20,9 +20,16 @@
 
 ### 3.1 씬에 매핑할 방 만들기
 
-Topic 3-C 검증 때 썼던 테스트 벽(`/World/TestWall`)은 진단 후 삭제했으므로, 씬에는 로봇과 평평한 `GroundPlane`만 남아있었다 — 2D LiDAR가 수평면만 스캔하는 한 다시 지도가 안 만들어질 상황. `/World/Room` 아래 벽 4개(6m×5m 방, 두께 0.1m, 높이 1.2m — 라이다 마운트 높이 `z=0.99`를 여유 있게 덮음)를 스크립트로 배치했다.
+Topic 3-C 검증 때 썼던 테스트 벽(`/World/TestWall`)은 진단 후 삭제했으므로, 씬에는 로봇과 평평한 `GroundPlane`만 남아있었다 — 2D LiDAR가 수평면만 스캔하는 한 다시 지도가 안 만들어질 상황. `/World/Room` 아래 벽 4개(6m×5m 방, 두께 0.1m, 높이 1.2m — 라이다 마운트 높이 `z=0.99`를 여유 있게 덮음)를 스크립트로 배치한다.
+
+Isaac Sim의 `Window > Script Editor`를 열고 아래 전체를 붙여넣어 실행한다:
 
 ```python
+import omni.usd
+from pxr import UsdGeom, UsdPhysics, Gf
+
+stage = omni.usd.get_context().get_stage()
+
 def make_wall(path, center, size):
     cube = UsdGeom.Cube.Define(stage, path)
     cube.CreateSizeAttr(1.0)  # 1m 기준 큐브 — scale이 곧 미터 단위가 되어 계산이 직관적
@@ -31,17 +38,41 @@ def make_wall(path, center, size):
     xform_api.SetScale(Gf.Vec3f(*size))
     xform_api.SetTranslate(Gf.Vec3d(*center))
     UsdPhysics.CollisionAPI.Apply(prim)
+
+# 6m x 5m 방, 벽 두께 0.1m, 높이 1.2m
+walls = [
+    ("/World/Room/North", (0.0, 2.5, 0.6), (6.0, 0.1, 1.2)),
+    ("/World/Room/South", (0.0, -2.5, 0.6), (6.0, 0.1, 1.2)),
+    ("/World/Room/East", (3.0, 0.0, 0.6), (0.1, 5.0, 1.2)),
+    ("/World/Room/West", (-3.0, 0.0, 0.6), (0.1, 5.0, 1.2)),
+]
+for path, center, size in walls:
+    make_wall(path, center, size)
+
+print("room built")
 ```
+
+Outliner에서 `/World/Room` 아래 벽 4개가 생겼는지, 뷰포트에서 방 모양이 보이는지 확인한다.
 
 **Topic 3-C의 `CreateMeshPrimWithDefaultXform` 큐브 크기 버그를 재발하지 않도록**, 이번엔 `UsdGeom.Cube.Define()` + `CreateSizeAttr(1.0)`로 기준 크기를 직접 명시했다 — `scale`이 그대로 미터 단위가 되므로 커맨드의 알 수 없는 기본값에 의존하지 않는다. 배치 후 `UsdGeom.BBoxCache.ComputeWorldBound()`로 4개 벽의 실제 bbox를 재확인했더니 의도한 좌표와 정확히 일치했다(3.12절에서 배운 "실측 없이 스크립트 배치값을 믿지 말 것"을 그대로 적용).
 
 ### 3.2 slam_toolbox 파라미터 준비
 
-`~/isaac_assets/carter_standard/config/slam_toolbox_params.yaml` — `/opt/ros/jazzy/share/slam_toolbox/config/mapper_params_online_async.yaml`을 베이스로:
-- `odom_frame: odom`, `base_frame: base_link` (실제 발행되는 이름 그대로, 대체 불필요)
-- `scan_topic: /scan`
-- `min_laser_range: 0.05`, `max_laser_range: 30.0` (RPLIDAR_S2E의 실제 range와 일치)
-- `minimum_travel_distance/heading: 0.3` (기본 `0.5`보다 낮춤 — 6m×5m의 작은 방에서 더 촘촘하게 스캔 매칭)
+`/opt/ros/jazzy/share/slam_toolbox/config/mapper_params_online_async.yaml`을 베이스로 4곳만 수정해서 저장:
+
+```bash
+sed -e 's/base_frame: base_footprint/base_frame: base_link/' \
+    -e 's/min_laser_range: 0.0 #for rastering images/min_laser_range: 0.05 #for rastering images/' \
+    -e 's/max_laser_range: 20.0 #for rastering images/max_laser_range: 30.0 #for rastering images/' \
+    -e 's/minimum_travel_distance: 0.5/minimum_travel_distance: 0.3/' \
+    -e 's/minimum_travel_heading: 0.5/minimum_travel_heading: 0.3/' \
+    /opt/ros/jazzy/share/slam_toolbox/config/mapper_params_online_async.yaml \
+    > ~/isaac_assets/carter_standard/config/slam_toolbox_params.yaml
+```
+
+- `base_frame: base_footprint` → `base_link` (실제 발행되는 이름으로, `odom_frame`/`map_frame`/`scan_topic`은 기본값 그대로 둬도 됨 — 각각 `odom`/`map`/`scan`)
+- `min_laser_range 0.0 → 0.05`, `max_laser_range 20.0 → 30.0` (RPLIDAR_S2E의 실제 range와 일치)
+- `minimum_travel_distance/heading 0.5 → 0.3` (6m×5m의 작은 방에서 더 촘촘하게 스캔 매칭)
 
 ### 3.3 slam_toolbox 실행
 
@@ -71,7 +102,17 @@ ros2 run tf2_ros static_transform_publisher \
 
 ### 3.5 로봇을 방 안에서 주행시켜 지도 채우기
 
-`teleop_twist_keyboard`로 직접 몰아도 되지만, 이 세션에서는 `/cmd_vel`에 일정 시간 간격으로 전진/회전 명령을 순서대로 퍼블리시하는 파이썬 스크립트로 방 둘레를 도는 사각형 순찰 경로를 재현했다(전진 5~6초 → 제자리 회전 ~90도 × 4회 반복).
+새 터미널에서:
+
+```bash
+conda deactivate
+source /opt/ros/jazzy/setup.bash
+ros2 run teleop_twist_keyboard teleop_twist_keyboard
+```
+
+`i`(전진)/`,`(후진)/`j`(좌회전)/`l`(우회전)/`k`(정지) 키로 방 둘레를 한 바퀴 돌면서 `/map_metadata`의 `width`/`height`가 방 크기(약 120×100)에 도달할 때까지 이동한다. 벽에 너무 바짝 붙이지 않아도 되고, 방을 한 바퀴 도는 정도면 충분하다.
+
+(이 세션에서는 직접 조작 대신 `/cmd_vel`에 전진/회전 명령을 순서대로 퍼블리시하는 파이썬 스크립트로 사각형 순찰 경로를 재현했지만, 실습 목적이면 위 `teleop_twist_keyboard`로 직접 모는 쪽을 권장한다.)
 
 ### 3.6 지도 저장
 
@@ -106,4 +147,4 @@ ros2 run nav2_map_server map_saver_cli -f ~/isaac_assets/carter_standard/maps/ca
 - [x] `map_saver_cli`로 `~/isaac_assets/carter_standard/maps/carter_room_map.yaml`+`.pgm` 저장, 픽셀 분포로 실제 벽 인식 확인
 
 ---
-다음: `05-nav2-goal-driving.md` (미작성) — 이번에 저장한 지도로 Nav2 코스트맵을 띄우고, vacuum 프로젝트의 벽/코너 wedging 버그가 여기서도 재현되는지 확인
+다음: [05-nav2-goal-driving.md](05-nav2-goal-driving.md) — 이번에 저장한 지도로 Nav2 코스트맵을 띄우고, vacuum 프로젝트의 벽/코너 wedging 버그가 여기서도 재현되는지 확인

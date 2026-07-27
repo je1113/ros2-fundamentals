@@ -20,9 +20,18 @@
 
 ### 3.1 `nav2_params.yaml` 준비
 
-`/opt/ros/jazzy/share/nav2_bringup/params/nav2_params.yaml`을 베이스로 두 가지만 수정:
+`/opt/ros/jazzy/share/nav2_bringup/params/nav2_params.yaml`을 베이스로 두 가지만 `sed`로 일괄 수정해서 저장:
+
+```bash
+mkdir -p ~/isaac_assets/carter_standard/nav2
+sed -e 's/base_frame_id: "base_footprint"/base_frame_id: "base_link"/g' \
+    -e 's/robot_radius: 0.22/robot_radius: 0.35/g' \
+    /opt/ros/jazzy/share/nav2_bringup/params/nav2_params.yaml \
+    > ~/isaac_assets/carter_standard/nav2/nav2_params.yaml
+```
+
 - 모든 `base_frame_id: "base_footprint"` → `"base_link"` (amcl, velocity_smoother, docking_server 3곳 — 이 트랙엔 `base_footprint` 프레임이 없음, `robot_base_frame`은 이미 기본값이 `base_link`라 안 건드림)
-- `robot_radius: 0.22` → `0.35` (local/global costmap 2곳)
+- `robot_radius: 0.22` → `0.35` (local/global costmap 2곳, Carter의 실제 바디 크기에 맞춤)
 
 ### 3.2 Nav2 브링업 + 초기 포즈 (타이밍 이슈 해결)
 
@@ -37,18 +46,32 @@ ros2 launch nav2_bringup bringup_launch.py \
 
 **처음 두 번은 실패했다** — `/odom`을 확인하고 `sed`로 파라미터 파일을 준비하는 등 다른 작업을 하다 초기 포즈를 너무 늦게(브링업 시작 후 30초 이상 지나서) 보냈더니, `global_costmap`이 `base_link`→`map` transform 대기 타임아웃으로 활성화 실패 → `lifecycle_manager_navigation`이 브링업 자체를 중단했다. **해결**: 브링업을 띄우는 동시에 `ros2 topic pub -r 2 /initialpose ...`를 `timeout 25`로 감싸 백그라운드에서 2Hz로 25초간 반복 발행 — AMCL 구독자가 언제 준비되든 놓치지 않고 몇 초 안에 전달되도록 했다.
 
+`nav2_bringup`을 실행한 터미널과는 **다른 새 터미널**에서, 브링업을 띄우자마자 바로 이어서 실행한다 (브링업이 foreground를 점유하고 있으므로):
+
+먼저 로봇의 현재 위치를 확인한다 (맵을 만들 때와 같은 `odom` 원점 기준이라, 이 값을 그대로 `map` 프레임 초기 추정치로 써도 충분히 가깝다):
+
 ```bash
-timeout 25 ros2 topic pub -r 2 /initialpose geometry_msgs/msg/PoseWithCovarianceStamped \
-  "{header: {frame_id: 'map'}, pose: {pose: {position: {x: <현재 /odom x>, y: <현재 /odom y>, z: 0.0}, orientation: <현재 /odom orientation>}, covariance: [0.25,0,0,0,0,0, 0,0.25,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0.0685]}}"
+conda deactivate
+source /opt/ros/jazzy/setup.bash
+ros2 topic echo /odom --once
 ```
 
-(맵을 만들 때와 같은 `odom` 원점 기준이라, 현재 `/odom` 값을 그대로 `map` 프레임 초기 추정치로 써도 충분히 가깝다.)
+`pose.pose.position`(`x`,`y`)과 `pose.pose.orientation`(`x`,`y`,`z`,`w`) 값을 그대로 아래 명령의 해당 자리에 넣는다:
+
+```bash
+conda deactivate
+source /opt/ros/jazzy/setup.bash
+timeout 25 ros2 topic pub -r 2 /initialpose geometry_msgs/msg/PoseWithCovarianceStamped \
+  "{header: {frame_id: 'map'}, pose: {pose: {position: {x: <위에서 확인한 x>, y: <위에서 확인한 y>, z: 0.0}, orientation: {x: <확인한 x>, y: <확인한 y>, z: <확인한 z>, w: <확인한 w>}}, covariance: [0.25,0,0,0,0,0, 0,0.25,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0.0685]}}"
+```
 
 성공 시 로그에 `lifecycle_manager_localization: Managed nodes are active`, `lifecycle_manager_navigation: Managed nodes are active`가 순서대로 뜨고 `/tf`에 `map→odom`, `odom→base_link` 두 쌍이 모두 나타난다.
 
 ### 3.3 열린 공간 목표 (동작 확인용)
 
 ```bash
+conda deactivate
+source /opt/ros/jazzy/setup.bash
 ros2 action send_goal /navigate_to_pose nav2_msgs/action/NavigateToPose \
   "{pose: {header: {frame_id: 'map'}, pose: {position: {x: 1.0, y: -1.0, z: 0.0}, orientation: {w: 1.0}}}}"
 ```
@@ -57,7 +80,28 @@ ros2 action send_goal /navigate_to_pose nav2_msgs/action/NavigateToPose \
 
 ### 3.4 벽/코너 근접 목표 4개 — wedging 재현 시도
 
-6m×5m 방(벽 안쪽 면: x∈[-2.95,2.95], y∈[-2.45,2.45])의 네 코너 각각에서 안쪽으로 약 0.35~0.55m 들어간 지점(로봇 반지름 `0.35`와 비슷한 수준의 여유)으로 목표를 보냈다:
+6m×5m 방(벽 안쪽 면: x∈[-2.95,2.95], y∈[-2.45,2.45])의 네 코너 각각에서 안쪽으로 약 0.35~0.55m 들어간 지점(로봇 반지름 `0.35`와 비슷한 수준의 여유)으로 하나씩 순서대로 보낸다. `--feedback`을 붙이면 `number_of_recoveries`(Spin/BackUp 등 복구 행동이 몇 번 트리거됐는지)를 실시간으로 볼 수 있다 — wedging이 재현된다면 여기 값이 계속 올라간다.
+
+```bash
+conda deactivate
+source /opt/ros/jazzy/setup.bash
+
+# NE 코너
+ros2 action send_goal /navigate_to_pose nav2_msgs/action/NavigateToPose \
+  "{pose: {header: {frame_id: 'map'}, pose: {position: {x: 2.4, y: 1.9, z: 0.0}, orientation: {w: 1.0}}}}" --feedback
+
+# SW 코너
+ros2 action send_goal /navigate_to_pose nav2_msgs/action/NavigateToPose \
+  "{pose: {header: {frame_id: 'map'}, pose: {position: {x: -2.6, y: -2.1, z: 0.0}, orientation: {w: 1.0}}}}" --feedback
+
+# NW 코너
+ros2 action send_goal /navigate_to_pose nav2_msgs/action/NavigateToPose \
+  "{pose: {header: {frame_id: 'map'}, pose: {position: {x: -2.6, y: 1.9, z: 0.0}, orientation: {w: 1.0}}}}" --feedback
+
+# SE 코너
+ros2 action send_goal /navigate_to_pose nav2_msgs/action/NavigateToPose \
+  "{pose: {header: {frame_id: 'map'}, pose: {position: {x: 2.4, y: -2.1, z: 0.0}, orientation: {w: 1.0}}}}" --feedback
+```
 
 | 목표 | 결과 | `number_of_recoveries` |
 |---|---|---|
@@ -66,7 +110,7 @@ ros2 action send_goal /navigate_to_pose nav2_msgs/action/NavigateToPose \
 | (-2.6, 1.9) — NW | SUCCEEDED | 0 |
 | (2.4, -2.1) — SE | SUCCEEDED | 0 |
 
-4개 코너 전부 `--feedback`으로 관찰한 `number_of_recoveries`가 끝까지 `0`으로 유지됐다 — Spin/BackUp 등 어떤 복구 행동도 트리거되지 않았고, 오실레이션이나 정지 없이 매끄럽게 도착해 종료했다.
+4개 코너 전부 `number_of_recoveries`가 끝까지 `0`으로 유지됐다 — 어떤 복구 행동도 트리거되지 않았고, 오실레이션이나 정지 없이 매끄럽게 도착해 종료했다.
 
 ## 4. 예상/실제 결과 확인
 
