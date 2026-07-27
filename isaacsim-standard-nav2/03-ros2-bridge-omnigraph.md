@@ -129,7 +129,15 @@ ros2 topic echo /odom --once     # frame_id: odom, child_frame_id: base_link
 
 **주의: `renderer.raytracingMotion.enabled`를 Play 도중에 켰다가 Isaac Sim이 크래시했다.** Radar/Lidar Motion BVH 관련 carb 설정인데, 이미 생성된 Hydra 엔진과 설정이 맞지 않으면(`hydra engine condiguration is not suitable for engine...`) 뷰포트 생성 실패가 무한 반복되다 프로세스가 죽는다. **이 설정은 세션 중간에 토글하지 말 것** — 필요하다면 앱을 완전히 재시작해서 시작 시점부터 적용해야 한다. 결과적으로 이 설정은 오늘 겪은 버그와 무관했다(끈 상태로도 정상 동작 확인).
 
-**후속 확인 필요 (다음 세션 또는 Topic 4에서)**: 유효 469개 포인트가 좁은 각도(~53°)·좁은 거리대(0.88~1.02m)에 몰려 있는 게, 3m 앞의 테스트 벽이 아니라 **로봇 자기 자신의 섀시를 스캔한 값일 가능성**이 있다. SLAM/Nav2를 붙이기 전에 실제로 벽까지의 거리(~2m대)가 잡히는지, 혹은 마운트 각도/FOV 마스킹이 필요한지 확인할 것.
+### 3.12 469개 포인트의 정체 확인 — 자기 충돌 아니었음 (2026-07-27)
+
+469개 유효 포인트가 좁은 각도(~53°)·좁은 거리대(0.88~1.02m)에 몰려 있어 "테스트 벽이 아니라 로봇 자기 섀시를 스캔한 것 아닌가" 의심하고 검증한 결과, 두 개의 서로 다른 문제가 있었지만 **최종적으로는 자기 충돌이 아니라 정확히 테스트 벽을 맞춘 것으로 확인됐다**:
+
+1. **PhysX 레이캐스트로 확인한 실제 자기 충돌 문제(진짜였음)**: 라이다를 `XT_32_10Hz`와 같은 위치 `(-0.06, 0, 0.38)`에 뒀더니, `omni.physx.get_physx_scene_query_interface().raycast_closest()`로 정면 레이를 쏘면 `/World/carter_v1/chassis_link/box` 콜라이더에 거리 0으로 맞았다 — 즉 센서가 로봇 자기 몸체의 콜라이더 안에 파묻혀 있었다. 여러 높이에서 레이캐스트를 반복해 `z=0.62`(파묻힘)와 `z=0.66`(빠져나옴, 시각적 몸체 상단은 `z≈0.662`) 경계를 찾고, 여유를 둬 `Translate Z = 0.75`로 이동해 해결. 이 자체는 정당한 수정이고, 향후 범퍼/근접 센서 등을 추가할 때도 유효한 마운트 높이다.
+2. **그런데 높이를 올려도 `/scan`의 0.88~1.02m 패턴이 거의 그대로였다** — PhysX 콜라이더와의 충돌은 사라졌는데 실제 스캔 결과는 안 바뀐 것. 이유를 확실히 하려고, PhysX 레이캐스트 방향 가정(로컬 +X = 정면)이 실제 RTX Lidar의 방위각 컨벤션과 다를 수 있다는 점을 의심해, **`/scan` 메시지의 (각도, 거리) 값 자체를 라이다의 실제 월드 transform으로 변환해 월드 좌표를 직접 계산**했다(`convert_scan_to_world_2026-07-27.py`). 결과: 히트 포인트가 `x∈[0.821,0.842], y∈[-0.5,0.5], z=0.987`로, `/World/TestWall`의 실제 bbox(`min=(0.831,-0.5,0.189), max=(1.831,0.5,1.189)`)와 정확히 일치 — **자기 몸체가 아니라 테스트 벽을 정확히 맞추고 있었다.**
+3. **진짜 버그는 테스트 벽을 만드는 스크립트 쪽에 있었다**: `omni.kit.commands.execute("CreateMeshPrimWithDefaultXform", prim_type="Cube", ...)`로 만든 큐브는 GUI의 `Create > Mesh > Cube`가 만드는 100m 큐브와 기본 크기가 달랐다(정확한 기본값은 미확인이나, `scale=0.02` 적용 후 실측 크기가 의도한 2m가 아니라 1m였고 위치도 의도한 `(3,0,1)`이 아니라 `(1.33,0,0.69)` 부근이었다). **커맨드마다 기본 프리미티브 크기가 다르다는, 이미 여러 번 겪은 "Cube 기본 크기는 절대 직관대로가 아니다" 계열 함정이 `Create > Mesh > Cube` GUI 메뉴 바깥의 커맨드에도 그대로 적용된다는 새 사례.** 실측 없이 스크립트로 배치한 값을 신뢰하면 안 되고, 배치 후 반드시 `ComputeWorldBound`로 실제 bbox를 재확인해야 한다.
+
+결론: `/scan` 파이프라인은 처음부터 끝까지 정상 동작하고 있었다. 검증이 끝난 뒤 `/World/TestWall`은 진단용 소품이라 삭제했다(Topic 4 SLAM 지도에 엉뚱한 장애물로 남지 않도록).
 
 ## 4. 예상/실제 결과 확인
 
@@ -154,6 +162,7 @@ ros2 topic echo /odom --once     # frame_id: odom, child_frame_id: base_link
 | `Camera Prim`을 올바른 중첩 prim으로 고쳐도 `ROS2PublishLaserScan: GMO buffer is empty or invalid. Skipping.`가 매 프레임 반복, `/scan` 토픽은 뜨지만 메시지가 전혀 안 옴 | 두 원인이 겹침: (1) 구버전 `isaacsim.sensors.rtx.LidarRtx`로 만든 센서라 render product가 제대로 등록 안 됨, (2) 씬에 로봇+바닥 말고 장애물이 하나도 없어서 리턴이 0개인 게 애초에 물리적으로 정상 | (1) 신버전 `isaacsim.sensors.experimental.rtx`가 적용된 GUI 메뉴(`Create > Sensors > RTX Lidar > ...`)로 센서 재생성. (2) 로봇 앞에 테스트용 큐브를 놓아 실제로 부딪힐 대상을 만듦. 3.11절 참고 |
 | `Isaac Create Render Product`의 `Camera Prim` relationship이 `og.Controller.get`으로 확인하면 빈 배열로 초기화됨 (GUI 재연결·Isaac Sim 크래시-재시작 양쪽에서 재현) | Property 패널 relationship 필드 표시와 실제 USD 값이 어긋나는 사례(`wheelRadius`와 동일 계열)이자, 이 relationship 자체가 크래시/재시작을 안전하게 못 버티는 것으로 보임 | `og.Controller.set(...)`으로 강제 설정. Play 하기 직전에 매번 `og.Controller.get`으로 재검증하는 습관화 |
 | `renderer.raytracingMotion.enabled`를 Play 도중 켰더니 `UsdContext::createViewport - failed to create Hydra Engine thread for viewport`가 무한 반복되며 Isaac Sim이 크래시 | 이미 생성된 Hydra 엔진의 설정(uid 1024, 기존 tickRate)과 새로 요구되는 엔진 설정(모션 레이트레이싱 강제 ON)이 충돌 | 세션 중간에 이 설정을 토글하지 말 것. 결과적으로 이 설정은 오늘 문제 해결에 필요하지 않았음(꺼진 상태로 정상 동작) |
+| `omni.kit.commands.execute("CreateMeshPrimWithDefaultXform", prim_type="Cube", ...)`로 만든 큐브가 `scale=0.02` 적용 후에도 의도한 2m가 아니라 1m 크기, 의도한 위치가 아닌 다른 위치에 생성됨 | 이 커맨드의 기본 큐브 크기가 GUI `Create > Mesh > Cube`의 100m 기본값과 다름 — "Cube 기본 크기는 절대 직관대로가 아니다" 계열 함정이 커맨드마다 다시 나타남 | 스크립트로 프리미티브를 배치한 뒤 `UsdGeom.BBoxCache.ComputeWorldBound()`로 실제 bbox를 반드시 재확인. 3.12절 참고 |
 
 ## 6. 체크포인트
 
