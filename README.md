@@ -15,7 +15,7 @@ basics-cpp/              Part 0-CPP — rclcpp 핵심 차이 6개 토픽 (작성
 nav2-advanced/           Part 1 — Nav2 자율주행 7개 토픽 (완료)
 moveit2-advanced/        Part 2 — MoveIt2 모션플래닝 3개 토픽 (완료)
 isaacsim-ros2-advanced/  Isaac Sim × ROS2 — 로봇청소기 시뮬레이션 프로젝트 (Part A~D, 10개 토픽, 진행 중)
-isaacsim-standard-nav2/  Isaac Sim × ROS2 — 표준 에셋 기반 Nav2 검증 트랙 (5개 토픽, 진행 중)
+isaacsim-standard-nav2/  Isaac Sim × ROS2 — 표준 에셋 기반 Nav2 검증 트랙 (5개 토픽, 완료 — wedging 미재현, 결론: vacuum 프로젝트 하드웨어 문제로 판단)
 ```
 
 각 트랙 폴더의 `00-syllabus.md`가 총론이고, `NN-topic.md`가 토픽별 실습 가이드다. 실습에 사용한 ROS 2 워크스페이스 코드는 트랙별로 별도 관리한다.
@@ -109,7 +109,7 @@ Nav2+MoveIt2 통합 캡스톤(Part 3) 계획은 보류하고, Isaac Sim 기반 �
 | 2 | 로봇 물리/센서 구조 파악 | [isaacsim-standard-nav2/02-physics-sensor-structure.md](isaacsim-standard-nav2/02-physics-sensor-structure.md) | 완료 |
 | 3 | ROS2 브릿지 & OmniGraph 연결 | [isaacsim-standard-nav2/03-ros2-bridge-omnigraph.md](isaacsim-standard-nav2/03-ros2-bridge-omnigraph.md) | 완료 |
 | 4 | SLAM 지도 작성 | [isaacsim-standard-nav2/04-slam-grid-map.md](isaacsim-standard-nav2/04-slam-grid-map.md) | 완료 |
-| 5 | Nav2 목표 주행 검증 | — | 진행 예정 |
+| 5 | Nav2 목표 주행 검증 | [isaacsim-standard-nav2/05-nav2-goal-driving.md](isaacsim-standard-nav2/05-nav2-goal-driving.md) | 완료 |
 
 전체 목표: [isaacsim-standard-nav2/00-syllabus.md](isaacsim-standard-nav2/00-syllabus.md)
 

@@ -41,9 +41,9 @@
 | 2 | 로봇 물리/센서 구조 파악 | [02-physics-sensor-structure.md](02-physics-sensor-structure.md) | 완료 |
 | 3 | ROS2 브릿지 & OmniGraph 연결 | [03-ros2-bridge-omnigraph.md](03-ros2-bridge-omnigraph.md) | 완료 |
 | 4 | SLAM 지도 작성 | [04-slam-grid-map.md](04-slam-grid-map.md) | 완료 |
-| 5 | Nav2 목표 주행 검증 | — | 진행 예정 |
+| 5 | Nav2 목표 주행 검증 | [05-nav2-goal-driving.md](05-nav2-goal-driving.md) | 완료 |
 
 ## 5. 관련 프로젝트와의 관계
 
-- `isaacsim-ros2-advanced`(로봇청소기): 이 트랙에서 wedging 원인이 로봇 하드웨어 문제로 판명되면 그 프로젝트로 돌아가 콜라이더/조인트를 재점검한다. Nav2/설정 문제로 판명되면 그 결론을 그대로 로봇청소기 프로젝트의 `nav2_params.yaml`에 반영한다.
+- `isaacsim-ros2-advanced`(로봇청소기): **결론 도출됨(Topic 5, 2026-07-27)** — 같은 시나리오를 표준 에셋으로 재현했을 때 wedging이 전혀 나타나지 않아, 로봇 하드웨어(콜라이더/드라이브트레인) 문제 쪽에 무게가 실렸다. 다음은 그 프로젝트로 돌아가 콜라이더/조인트를 재점검하는 것.
 - `nav2-advanced`(TurtleBot3+Gazebo): Isaac Sim이 아닌 순수 ROS2/Gazebo 환경에서의 Nav2 기초 트랙. 개념은 겹치지만 시뮬레이터가 다르다.
