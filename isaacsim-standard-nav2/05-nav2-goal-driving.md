@@ -39,8 +39,8 @@ sed -e 's/base_frame_id: "base_footprint"/base_frame_id: "base_link"/g' \
 conda deactivate
 source /opt/ros/jazzy/setup.bash
 ros2 launch nav2_bringup bringup_launch.py \
-  map:=~/isaac_assets/carter_standard/maps/carter_room_map.yaml \
-  params_file:=~/isaac_assets/carter_standard/nav2/nav2_params.yaml \
+  map:=$HOME/isaac_assets/carter_standard/maps/carter_room_map.yaml \
+  params_file:=$HOME/isaac_assets/carter_standard/nav2/nav2_params.yaml \
   use_sim_time:=true autostart:=true
 ```
 
