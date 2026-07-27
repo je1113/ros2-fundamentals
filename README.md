@@ -1,6 +1,6 @@
 # ROS 2 Fundamentals — 기초부터 Nav2/MoveIt2, Isaac Sim까지
 
-ROS 2를 패키지 생성부터 자율주행(Nav2)·모션플래닝(MoveIt2)까지 순서대로 실습하는 튜토리얼 기록이다. `basics`/`nav2-advanced`/`moveit2-advanced`는 Isaac Sim 없이 표준 도구(Gazebo, TurtleBot3, Panda 등)로만 진행하고, `isaacsim-ros2-advanced`는 Isaac Sim 기반으로 커스텀 로봇(로봇청소기)을 하드웨어 가상화부터 자율주행까지 엔드투엔드로 다룬다. `basics-cpp`는 `basics`(Python/rclpy)를 마친 뒤, 통신 개념을 다시 설명하지 않고 rclcpp가 실제로 다르게 동작하는 지점만 짚는 압축 트랙이다.
+ROS 2를 패키지 생성부터 자율주행(Nav2)·모션플래닝(MoveIt2)까지 순서대로 실습하는 튜토리얼 기록이다. `basics`/`nav2-advanced`/`moveit2-advanced`는 Isaac Sim 없이 표준 도구(Gazebo, TurtleBot3, Panda 등)로만 진행하고, `isaacsim-ros2-advanced`는 Isaac Sim 기반으로 커스텀 로봇(로봇청소기)을 하드웨어 가상화부터 자율주행까지 엔드투엔드로 다룬다. `basics-cpp`는 `basics`(Python/rclpy)를 마친 뒤, 통신 개념을 다시 설명하지 않고 rclcpp가 실제로 다르게 동작하는 지점만 짚는 압축 트랙이다. `rpi-rplidar`는 지금까지의 시뮬레이션 트랙들과 달리 처음으로 진짜 하드웨어(라즈베리파이, RPLIDAR)를 다루는 트랙이다.
 
 ## 대상 독자
 
@@ -16,6 +16,7 @@ nav2-advanced/           Part 1 — Nav2 자율주행 7개 토픽 (완료)
 moveit2-advanced/        Part 2 — MoveIt2 모션플래닝 3개 토픽 (완료)
 isaacsim-ros2-advanced/  Isaac Sim × ROS2 — 로봇청소기 시뮬레이션 프로젝트 (Part A~D, 10개 토픽, 진행 중)
 isaacsim-standard-nav2/  Isaac Sim × ROS2 — 표준 에셋 기반 Nav2 검증 트랙 (5개 토픽, 완료 — wedging 미재현, 결론: vacuum 프로젝트 하드웨어 문제로 판단)
+rpi-rplidar/             진짜 하드웨어(라즈베리파이 + RPLIDAR A1) 프로젝트 — 시뮬레이션 아닌 실물 첫 트랙 (진행 중)
 ```
 
 각 트랙 폴더의 `00-syllabus.md`가 총론이고, `NN-topic.md`가 토픽별 실습 가이드다. 실습에 사용한 ROS 2 워크스페이스 코드는 트랙별로 별도 관리한다.
@@ -113,6 +114,19 @@ Nav2+MoveIt2 통합 캡스톤(Part 3) 계획은 보류하고, Isaac Sim 기반 �
 | 5 | Nav2 목표 주행 검증 | [isaacsim-standard-nav2/05-nav2-goal-driving.md](isaacsim-standard-nav2/05-nav2-goal-driving.md) | 완료 |
 
 전체 목표: [isaacsim-standard-nav2/00-syllabus.md](isaacsim-standard-nav2/00-syllabus.md)
+
+## 라즈베리파이 × RPLIDAR 실물 프로젝트
+
+지금까지의 모든 트랙은 시뮬레이션(Gazebo/Isaac Sim)이었다. 이 트랙은 처음으로 진짜 하드웨어(집에 있던 RPLIDAR A1, 라즈베리파이)를 붙여보는 트랙 — "센서 하나 → ROS2 토픽"이라는 가장 가벼운 실물 연동부터 시작한다.
+
+| # | 주제 | 가이드 | 상태 |
+|---|---|---|---|
+| 1 | PC에서 RPLIDAR 첫 연결 | [rpi-rplidar/01-first-scan-on-pc.md](rpi-rplidar/01-first-scan-on-pc.md) | 완료 |
+| 2 | 라즈베리파이 OS/ROS2 세팅 | — | 진행 예정 |
+| 3 | 라즈베리파이로 RPLIDAR 이전 | — | 진행 예정 |
+| 4 | RViz로 시각화 | — | 블로킹 이슈로 보류 (GLX/Wayland) |
+
+전체 목표: [rpi-rplidar/00-syllabus.md](rpi-rplidar/00-syllabus.md)
 
 ## 라이선스 / 참고
 
