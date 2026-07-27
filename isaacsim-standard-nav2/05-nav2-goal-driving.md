@@ -131,6 +131,7 @@ ros2 action send_goal /navigate_to_pose nav2_msgs/action/NavigateToPose \
 |---|---|---|
 | `ros2 action send_goal /navigate_to_pose ...` → `Goal was rejected` | `lifecycle_manager_navigation`이 코스트맵 활성화 타임아웃으로 브링업 자체를 중단(`bt_navigator`가 inactive 상태) | 초기 포즈를 브링업 직후 몇 초 안에 반드시 전달. `timeout N ros2 topic pub -r 2 /initialpose ...`로 브링업과 동시에 몇 초간 반복 발행해 타이밍 경쟁을 없앰 (3.2절) |
 | `global_costmap`가 `Timed out waiting for transform from base_link to map` 반복, 결국 `Failed to activate global_costmap` | `base_link`→`map` TF는 AMCL이 초기 포즈를 받아야만 발행하기 시작하는데, 그 전에 코스트맵의 대기 시간(하드코딩된 값, 파라미터로 못 늘림)이 먼저 끝나버림 | 위와 동일 — 초기 포즈를 최대한 빨리 전달하는 것 외엔 근본 해결책이 없음(재시도 로직이 없어 한 번 실패하면 프로세스를 완전히 재시작해야 함) |
+| `ros2 launch ... map:=~/... params_file:=~/...`에서 `[Errno 2] No such file or directory: '~/isaac_assets/...'` — `~`가 문자 그대로 전달됨 | `이름:=값`은 `이름` 부분에 콜론이 섞여 있어 셸이 유효한 변수 대입문(`name=value`)으로 인식하지 못함 — 셸의 "대입문에서 `=` 뒤 `~`는 확장" 규칙이 적용 안 돼서 `~`가 그대로 리터럴 문자로 넘어감 | `~` 대신 `$HOME`(변수 치환이라 어디서든 확장됨)이나 전체 절대경로를 씀. vacuum 프로젝트에서도 이미 겪었던 것과 같은 함정([[isaacsim_ros2_advanced_curriculum]]) |
 
 ## 7. 체크포인트
 
