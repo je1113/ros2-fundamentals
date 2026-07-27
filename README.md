@@ -11,7 +11,7 @@ ROS 2를 패키지 생성부터 자율주행(Nav2)·모션플래닝(MoveIt2)까�
 
 ```
 basics/                  Part 0 — ROS 2 기초 13개 토픽 + 미니 프로젝트 1개 (완료)
-basics-cpp/              Part 0-CPP — rclcpp 핵심 차이 6개 토픽 (작성됨, 실행 검증 예정)
+basics-cpp/              Part 0-CPP — rclcpp 핵심 차이 6개 토픽 (완료, 2026-07-27 실행 검증 — 6번 컴포지션 직접 확인)
 nav2-advanced/           Part 1 — Nav2 자율주행 7개 토픽 (완료)
 moveit2-advanced/        Part 2 — MoveIt2 모션플래닝 3개 토픽 (완료)
 isaacsim-ros2-advanced/  Isaac Sim × ROS2 — 로봇청소기 시뮬레이션 프로젝트 (Part A~D, 10개 토픽, 진행 중)
