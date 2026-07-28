@@ -40,6 +40,7 @@ rpi-rplidar/             진짜 하드웨어(라즈베리파이 + RPLIDAR A1) �
 | 13 | ros2_control 입문 | [basics/13-ros2-control.md](basics/13-ros2-control.md) |
 | 14 | 미니 프로젝트: 행맨 게임 | [basics/14-hangman-game.md](basics/14-hangman-game.md) |
 | 15 | rqt_console (추가 토픽) | [basics/15-rqt-console.md](basics/15-rqt-console.md) |
+| 16 | Lifecycle Node (추가 토픽) | [basics/16-lifecycle-node.md](basics/16-lifecycle-node.md) |
 
 전체 목표: [basics/00-syllabus.md](basics/00-syllabus.md)
 

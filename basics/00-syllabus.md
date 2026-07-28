@@ -38,6 +38,7 @@
 | 13 | ros2_control 입문 | controller_manager, hardware interface, 궤적 제어 데모 |
 | 14 | 미니 프로젝트: 행맨 게임 | 서비스, 파라미터, 토픽 종합 실습 (신규 개념 없음) |
 | 15 | rqt_console (추가 토픽) | `/rosout`, Exclude/Highlight 필터, From Node 필터 — Topic 12 `rqt_graph`의 짝 |
+| 16 | Lifecycle Node (추가 토픽) | `LifecycleNode`, managed state(unconfigured/inactive/active/finalized), `on_configure`/`on_activate`, `ros2 lifecycle` |
 
 ## 3. 사전 준비물
 
