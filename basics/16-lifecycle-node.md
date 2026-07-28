@@ -173,4 +173,6 @@ ros2 lifecycle get /charging_dock_lifecycle
 - [x] `create_lifecycle_publisher`가 `active` 상태에서만 실제로 발행한다는 점을 `configure` 직후(발행 없음) vs `activate` 이후(발행 시작)로 직접 확인했다.
 
 ---
-`basics` 트랙의 순수 개념 주제는 이것으로 마무리. Nav2 같은 대형 스택에서 이 패턴이 실제로 어떻게 쓰이는지는 `nav2-advanced` 트랙에서 이어서 볼 수 있다.
+Nav2 같은 대형 스택에서 이 패턴이 실제로 어떻게 쓰이는지는 `nav2-advanced` 트랙에서 이어서 볼 수 있다.
+
+다음: [`17-sros2-security.md`](./17-sros2-security.md)

@@ -39,6 +39,7 @@
 | 14 | 미니 프로젝트: 행맨 게임 | 서비스, 파라미터, 토픽 종합 실습 (신규 개념 없음) |
 | 15 | rqt_console (추가 토픽) | `/rosout`, Exclude/Highlight 필터, From Node 필터 — Topic 12 `rqt_graph`의 짝 |
 | 16 | Lifecycle Node (추가 토픽) | `LifecycleNode`, managed state(unconfigured/inactive/active/finalized), `on_configure`/`on_activate`, `ros2 lifecycle` |
+| 17 | SROS2 (추가 토픽) | keystore/enclave, `ros2 security create_keystore`/`create_enclave`, `ROS_SECURITY_*`, DDS-Security 인증/접근 제어 |
 
 ## 3. 사전 준비물
 
