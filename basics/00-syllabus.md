@@ -40,6 +40,7 @@
 | 15 | rqt_console (추가 토픽) | `/rosout`, Exclude/Highlight 필터, From Node 필터 — Topic 12 `rqt_graph`의 짝 |
 | 16 | Lifecycle Node (추가 토픽) | `LifecycleNode`, managed state(unconfigured/inactive/active/finalized), `on_configure`/`on_activate`, `ros2 lifecycle` |
 | 17 | SROS2 (추가 토픽) | keystore/enclave, `ros2 security create_keystore`/`create_enclave`, `ROS_SECURITY_*`, DDS-Security 인증/접근 제어 |
+| 18 | URDF 기초 (추가 토픽) | `<link>` visual/collision/inertial, `<joint>` 타입, xacro property/macro, `robot_state_publisher`+RViz 시각화 |
 
 ## 3. 사전 준비물
 

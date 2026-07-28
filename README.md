@@ -42,6 +42,7 @@ rpi-rplidar/             진짜 하드웨어(라즈베리파이 + RPLIDAR A1) �
 | 15 | rqt_console (추가 토픽) | [basics/15-rqt-console.md](basics/15-rqt-console.md) |
 | 16 | Lifecycle Node (추가 토픽) | [basics/16-lifecycle-node.md](basics/16-lifecycle-node.md) |
 | 17 | SROS2 (추가 토픽) | [basics/17-sros2-security.md](basics/17-sros2-security.md) |
+| 18 | URDF 기초 | [basics/18-urdf-basics.md](basics/18-urdf-basics.md) |
 
 전체 목표: [basics/00-syllabus.md](basics/00-syllabus.md)
 

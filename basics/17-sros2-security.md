@@ -100,3 +100,5 @@ ros2 topic echo /battery_status
 
 ---
 `basics` 트랙 통신/실행 모델(QoS, Executor, Lifecycle)에 이어 "누가 통신할 자격이 있는가"까지 다뤘다. 실제 배포 환경에서는 여기에 `ros2 security generate_policy`로 실제 그래프에서 정책을 자동 생성하는 워크플로우가 이어진다.
+
+다음: [`18-urdf-basics.md`](./18-urdf-basics.md)
